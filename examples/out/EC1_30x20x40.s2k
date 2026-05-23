@@ -1,0 +1,19 @@
+; ---- LoadPattern WX+ (Wind, +X) ----
+TABLE:  "LOAD PATTERN DEFINITIONS"
+   LoadPat=WX+   DesignType=WIND   SelfWtMult=0.0000
+
+TABLE:  "JOINT LOADS - FORCE"
+   Joint=<STORY_1_JOINT>   LoadPat=WX+   CoordSys=GLOBAL   F1=68.5900   F3=0   M1=0   M2=0   M3=0
+   Joint=<STORY_2_JOINT>   LoadPat=WX+   CoordSys=GLOBAL   F1=85.2100   F3=0   M1=0   M2=0   M3=0
+   Joint=<STORY_3_JOINT>   LoadPat=WX+   CoordSys=GLOBAL   F1=95.6100   F3=0   M1=0   M2=0   M3=0
+   Joint=<STORY_4_JOINT>   LoadPat=WX+   CoordSys=GLOBAL   F1=103.2800   F3=0   M1=0   M2=0   M3=0
+   Joint=<STORY_5_JOINT>   LoadPat=WX+   CoordSys=GLOBAL   F1=109.4100   F3=0   M1=0   M2=0   M3=0
+   Joint=<STORY_6_JOINT>   LoadPat=WX+   CoordSys=GLOBAL   F1=114.5300   F3=0   M1=0   M2=0   M3=0
+   Joint=<STORY_7_JOINT>   LoadPat=WX+   CoordSys=GLOBAL   F1=118.9400   F3=0   M1=0   M2=0   M3=0
+   Joint=<STORY_8_JOINT>   LoadPat=WX+   CoordSys=GLOBAL   F1=122.8100   F3=0   M1=0   M2=0   M3=0
+   Joint=<STORY_9_JOINT>   LoadPat=WX+   CoordSys=GLOBAL   F1=126.2700   F3=0   M1=0   M2=0   M3=0
+   Joint=<STORY_10_JOINT>   LoadPat=WX+   CoordSys=GLOBAL   F1=129.4000   F3=0   M1=0   M2=0   M3=0
+   Joint=<STORY_11_JOINT>   LoadPat=WX+   CoordSys=GLOBAL   F1=132.2700   F3=0   M1=0   M2=0   M3=0
+   Joint=<STORY_12_JOINT>   LoadPat=WX+   CoordSys=GLOBAL   F1=134.9000   F3=0   M1=0   M2=0   M3=0
+   Joint=<STORY_13_JOINT>   LoadPat=WX+   CoordSys=GLOBAL   F1=137.3500   F3=0   M1=0   M2=0   M3=0
+   Joint=<STORY_14_JOINT>   LoadPat=WX+   CoordSys=GLOBAL   F1=46.0400   F3=0   M1=0   M2=0   M3=0

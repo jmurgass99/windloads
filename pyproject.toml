@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "windloadjm"
+version = "1.0.0"
+description = "Wind load calculation per EC1-1-4, ASCE 7-22 and NSR-10 B.6"
+authors = [{name = "Jesus Murga"}]
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24", "jmstructural-common"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "pytest-cov"]
+api = ["fastapi>=0.100", "uvicorn[standard]>=0.20", "httpx>=0.25"]
+test = ["pytest>=7.0", "pytest-cov>=4.0", "coverage>=7.0", "hypothesis>=6.0"]
+ui = ["streamlit>=1.30", "plotly>=5.18"]
+memos = ["handcalcs>=1.6", "forallpeople>=2.6"]
+dxf = ["ezdxf>=1.0"]
+
+[tool.setuptools.packages.find]
+include = ["windloadjm*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "unit: tests unitarios rápidos (<100ms)",
+    "integration: requieren stack completo",
+    "slow: duración > 5s",
+    "property: property-based con hypothesis",
+]
+addopts = "--strict-markers"
+
+[tool.coverage.run]
+source = ["windloadjm"]
+omit = [
+    "windloadjm/_brand.py",
+    "windloadjm/app/*",
+    "tests/*",
+    "examples/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+fail_under = 75
+show_missing = true
+
+[tool.uv.sources]
+jmstructural-common = { workspace = true }
