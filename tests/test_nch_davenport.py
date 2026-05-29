@@ -30,3 +30,21 @@ class TestDavenport:
         ))
         assert 0 <= r.Q_background <= 2.0
         assert r.R_resonant >= 0
+
+    def test_Gf_en_rango_fisico(self):
+        # Regresion del bug de signo en Rh: el factor de altura debe usar
+        # (1 - e^(-2*eta)), no (1 - e^(+2*eta)). Con el bug, R~19 y G_f~13.5
+        # (irreal). Corregido, un edificio flexible tipico da G_f ~0.8-2.5.
+        r = gust_factor_davenport(DavenportInput(natural_period_s=2.0, height_m=50.0))
+        assert r.R_resonant < 3.0
+        assert 0.8 < r.G_f < 2.5
+
+    def test_Rh_factor_decrece_con_la_altura_normalizada(self):
+        # R_h fisico es decreciente en eta_h: un edificio mas alto (mayor eta_h)
+        # tiene menor contribucion resonante de altura -> menor R (a igualdad de
+        # lo demas). Con el signo invertido esta monotonia se rompe.
+        bajo = gust_factor_davenport(DavenportInput(
+            natural_period_s=2.0, height_m=30.0, Vz_m_per_s=35.0))
+        alto = gust_factor_davenport(DavenportInput(
+            natural_period_s=2.0, height_m=90.0, Vz_m_per_s=35.0))
+        assert alto.R_resonant < bajo.R_resonant

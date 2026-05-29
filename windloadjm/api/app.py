@@ -100,6 +100,23 @@ def api_export(inp: dict):
         raise HTTPException(400, str(exc))
 
 
+@router.post("/api/wind/openfoam-pre")
+def api_openfoam_pre(inp: dict):
+    """Genera los diccionarios de OpenFOAM y geometría OBJ para simulación CFD."""
+    from ..cfd_pre import CfdWindTunnelInput, create_cfd_openfoam_pre
+    try:
+        result = create_cfd_openfoam_pre(CfdWindTunnelInput(**inp))
+        return {
+            "blockMeshDict": result.blockMeshDict,
+            "controlDict": result.controlDict,
+            "snappyHexMeshDict": result.snappyHexMeshDict,
+            "building_obj": result.building_obj,
+            "mesh_summary": result.mesh_summary,
+        }
+    except Exception as exc:
+        raise HTTPException(400, str(exc))
+
+
 def create_router() -> APIRouter:
     """Devuelve el APIRouter (factory para uniformidad con otros repos)."""
     return router

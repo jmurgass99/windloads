@@ -6,7 +6,7 @@ ASCE 7-22 §26.11. Incluye respuesta cuasi-estática + resonante.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import log, pi, sqrt
+from math import exp, log, pi, sqrt
 
 
 @dataclass(frozen=True)
@@ -43,7 +43,8 @@ def gust_factor_davenport(inp: DavenportInput) -> DavenportResult:
     N1 = f1 * Lz / Vz
     Rn = 7.47 * N1 / (1 + 10.3 * N1) ** (5.0 / 3.0)
     eta_h = 4.6 * f1 * h / Vz
-    Rh = 1.0 / eta_h - 1.0 / (2 * eta_h ** 2) * (1 - 1.0 / 2.71828 ** (-2 * eta_h)) \
+    # ASCE 7-22 Eq. 26.11-15a: R_l = 1/eta - 1/(2*eta^2)*(1 - e^(-2*eta)), eta>0.
+    Rh = 1.0 / eta_h - 1.0 / (2 * eta_h ** 2) * (1 - exp(-2 * eta_h)) \
          if eta_h > 0 else 1.0
     Rh = max(Rh, 0.0)
     R = sqrt(Rh * Rn / beta)
