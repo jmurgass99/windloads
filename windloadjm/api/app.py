@@ -28,7 +28,7 @@ def root():
     }
 
 
-@router.post("/api/wind/ec1")
+@router.post("/api/wind/ec1", summary="Presión de viento sobre edificios y estructuras según Eurocódigo 1 (EN 1991-1-4)")
 def api_ec1(inp: dict):
     try:
         result = ec1.compute_ec1(ec1.EC1Input(**inp))
@@ -45,7 +45,7 @@ def api_ec1(inp: dict):
         raise HTTPException(400, str(exc))
 
 
-@router.post("/api/wind/asce7")
+@router.post("/api/wind/asce7", summary="Presiones de viento MWFRS y C&C según ASCE 7-16 / ASCE 7-22")
 def api_asce7(inp: dict):
     try:
         result = asce7.compute_asce7(asce7.ASCE7Input(**inp))
@@ -61,7 +61,7 @@ def api_asce7(inp: dict):
         raise HTTPException(400, str(exc))
 
 
-@router.post("/api/wind/nsr10")
+@router.post("/api/wind/nsr10", summary="Fuerzas de viento según Reglamento Colombiano NSR-10 Título B.6")
 def api_nsr10(inp: dict):
     try:
         result = nsr10.compute_nsr10(nsr10.NSR10Input(**inp))
@@ -75,7 +75,7 @@ def api_nsr10(inp: dict):
         raise HTTPException(400, str(exc))
 
 
-@router.post("/api/wind/components/cc")
+@router.post("/api/wind/components/cc", summary="Presiones locales en componentes y cerramientos (C&C) según ASCE 7")
 def api_cc(inp: dict):
     try:
         result = components.compute_cc(components.CCInput(**inp))
@@ -100,7 +100,7 @@ def api_export(inp: dict):
         raise HTTPException(400, str(exc))
 
 
-@router.post("/api/wind/openfoam-pre")
+@router.post("/api/wind/openfoam-pre", summary="Generación de caso de simulación CFD en OpenFOAM para túnel de viento")
 def api_openfoam_pre(inp: dict):
     """Genera los diccionarios de OpenFOAM y geometría OBJ para simulación CFD."""
     from ..cfd_pre import CfdWindTunnelInput, create_cfd_openfoam_pre
