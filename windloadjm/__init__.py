@@ -96,3 +96,5 @@ from .exceptions import (  # noqa: E402
     WindLoadError, CodeError, GeometryError,
     ConfigurationError, DependencyError,
 )
+
+from . import sap_bridge
