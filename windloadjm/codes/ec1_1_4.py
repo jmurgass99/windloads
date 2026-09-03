@@ -57,12 +57,27 @@ class EC1WindLoad:
     enclosure: str = "closed"
     cdir: float = 1.0
     cseason: float = 1.0
-    Cs_Cd: float = 1.0
+    Cs_Cd: float | None = None
     rho: float = 1.25  # air density [kg/m³]
 
     def __post_init__(self) -> None:
         if self.story_heights is None:
             self.story_heights = [self.building_height]
+
+        # EN 1991-1-4 §6.2: Factor estructural Cs_Cd
+        if self.Cs_Cd is not None:
+            self._Cs_Cd_val = float(self.Cs_Cd)
+            self._Cs_Cd_status = "explicit_user_input"
+            self._Cs_Cd_justified = True
+        elif self.building_height <= 15.0:
+            self._Cs_Cd_val = 1.0
+            self._Cs_Cd_status = "justified_low_rise_h_le_15m (EN 1991-1-4 §6.2(1) Nota 1a)"
+            self._Cs_Cd_justified = True
+        else:
+            self._Cs_Cd_val = 1.0
+            self._Cs_Cd_status = "unverified_default_h_gt_15m (requiere cálculo dinámico §6.3 o Anexo B/C)"
+            self._Cs_Cd_justified = False
+
         self._terrain = TerrainProfile(code="EC1", category=self.terrain_cat)
         self._envelope = MWFRSEnvelope(
             code="EC1",
@@ -98,7 +113,7 @@ class EC1WindLoad:
     def story_forces(self) -> list:
         """Story-level wind forces [kN] per floor."""
         return self._envelope.ec1_story_forces(
-            self._terrain, self.vb_design, self.Cs_Cd
+            self._terrain, self.vb_design, self._Cs_Cd_val
         )
 
     def pressure_profile(self, n_points: int = 20) -> list[dict]:
@@ -147,7 +162,9 @@ class EC1WindLoad:
             "B_m": self.width,
             "D_m": self.depth,
             "qp_top_Pa": round(self.qp_at(self.building_height), 2),
-            "Cs_Cd": self.Cs_Cd,
+            "Cs_Cd": self._Cs_Cd_val,
+            "Cs_Cd_status": self._Cs_Cd_status,
+            "Cs_Cd_justified": self._Cs_Cd_justified,
             "facade_pressures": fp,
             "Vb_kN": self._envelope.total_base_shear(sf),
             "OTM_kNm": self._envelope.overturning_moment(sf),
