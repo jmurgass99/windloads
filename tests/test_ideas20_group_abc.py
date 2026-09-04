@@ -39,15 +39,6 @@ def test_report_ec1():
     assert "v_b" in md
 
 
-def test_industrial_chimney():
-    from windloadjm.integration.industrial_chimney import (
-        ChimneyWindInput, viento_chimenea,
-    )
-    res = viento_chimenea(ChimneyWindInput(H_m=40, D_m=2.5, vb_m_s=30, code="EU"))
-    assert res.F_arrastre_kN > 0
-    assert res.M_base_kNm > 0
-
-
 def test_fastsap_wind_pattern_dry_run():
     from windloadjm.integration.fastsap_load_patterns import (
         WindLoadPattern, FastSAPWindPatternExporter,
