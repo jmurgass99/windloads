@@ -138,8 +138,8 @@ def apply_wind_loads_to_sap(sap, assignments,
     return result
 
 
-def distribute_pressure_to_joints(joints, pressure_kN_m2, tributary_area_m2,
-                                       direction="X"):
+def distribute_pressure_to_joints(joints: list[str], pressure_kN_m2: float, tributary_area_m2: list[float],
+                                       direction: str = "X"):
     """Convierte una presion uniforme + areas tributarias en assignments.
 
     Args:
