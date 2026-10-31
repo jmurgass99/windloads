@@ -7,7 +7,7 @@ name = "windloads"
 version = "1.0.0"
 description = "Wind loads to EN 1991-1-4, ASCE 7-22, NSR-10 B.6 and NCh 432: basic wind speed maps, exposure and topography, peak velocity pressure, external and internal pressure coefficients (walls, flat, mono and duo-pitch roofs, canopies, solar trackers), MWFRS load cases, Davenport gust factor, vortex shedding and aeroelastic checks."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Jesús Murgas" }]
 keywords = ["wind-loads", "en-1991-1-4", "asce-7", "nsr-10", "pressure-coefficients", "gust-factor", "structural-engineering"]
@@ -16,7 +16,6 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
