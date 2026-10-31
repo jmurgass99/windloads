@@ -12,7 +12,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from windloadjm.vortex_shedding import (
+from windloads.vortex_shedding import (
     STROUHAL_NUMBERS,
     check_vortex_shedding,
     check_galloping,
@@ -21,7 +21,7 @@ from windloadjm.vortex_shedding import (
     VortexResult,
     GallopingResult,
 )
-from windloadjm.exceptions import ConfigurationError, GeometryError
+from windloads.exceptions import ConfigurationError, GeometryError
 
 
 # =========================================================================

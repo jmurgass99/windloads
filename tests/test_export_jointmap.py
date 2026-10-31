@@ -3,7 +3,7 @@ import math
 
 import pytest
 
-from windloadjm.export import (
+from windloads.export import (
     JointMap,
     LoadPattern,
     StoryPressure,

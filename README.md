@@ -1,130 +1,77 @@
-# WindLoadJm — Cargas de Viento Multi-Código
+# windloads
 
-[![CI](https://github.com/jmurgass99/windloadjm/actions/workflows/ci.yml/badge.svg)](https://github.com/jmurgass99/windloadjm/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-81.3%25-brightgreen?style=flat)](https://github.com/jmurgass99/windloadjm)
-[![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
-[![License](https://img.shields.io/badge/license-Proprietary-red)]()
+Cargas de viento multinorma: EN 1991-1-4, ASCE 7-22, NSR-10 B.6 y NCh 432. Velocidad básica por mapa y ciudad, rugosidad y topografía, presión de velocidad de pico, coeficientes de presión exterior e interior (muros, cubiertas planas, a un agua y a dos aguas, marquesinas, cubiertas complejas, seguidores solares), casos de carga MWFRS, componentes y revestimientos, factor de ráfaga de Davenport, desprendimiento de vórtices y comprobaciones aeroelásticas, generador de velocidades por periodo de retorno y exportación de fuerzas por planta a JSON, CSV, SAP2000 y ETABS.
 
-## Objetivo
-Librería Python para el cálculo automatizado de cargas de viento sobre edificios y estructuras según tres códigos normativos: **EN 1991-1-4 (Eurocódigo 1)**, **ASCE 7-22 (Capítulos 26-31)** y **NSR-10 (Título B.6)**.
+[![CI](https://github.com/jmurgass99/windloads/actions/workflows/ci.yml/badge.svg)](https://github.com/jmurgass99/windloads/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Este proyecto cierra el **gap #1** de FastSAP, que en su README declara explícitamente:
-> *"Sin viento (EC1-1-4 / ASCE 7-22 cap. 26-31 / NSR-10 §B.6 no implementados)"*
+Paquete independiente. Dependencias: `numpy`, `pydantic`.
 
----
+## Instalación
 
-## ¿Qué va a hacer?
-
-### 1. Perfil de Velocidad de Viento por Altura
-- Cálculo de la velocidad básica del viento según zona geográfica
-- Perfil de presión dinámica `qz(z)` variando con la altura
-- Categorías de terreno/exposición (abierto, suburbano, urbano)
-- Factor topográfico para colinas, escarpes y crestas
-
-### 2. Presiones sobre la Envolvente (MWFRS)
-- Coeficientes de presión externa `Cp` por fachada (barlovento, sotavento, laterales, cubierta)
-- Presión interna `GCpi` según clasificación del edificio (abierto, parcialmente cerrado, cerrado)
-- Presión neta de diseño: `p = q·G·Cp - qi·GCpi`
-- Método direccional (Method 1) y método de envolvente (Method 2)
-
-### 3. Components & Cladding (C&C)
-- Presiones locales para diseño de fachadas, ventanas y paneles
-- Zonas: interior, borde, esquina (Zone 4, 5 según ASCE 7)
-- Áreas tributarias efectivas
-
-### 4. Combinaciones de Carga
-- Generación automática de combinaciones con factores de viento
-- Integración con el sistema de `loads.py` y `cases.py` de FastSAP
-- Load patterns direccionales (0°, 90°, 180°, 270° + oblicuos)
-
-### 5. Exportación
-- Generación de load patterns para SAP2000/ETABS vía FastSAP
-- Tablas resumen para memorias de cálculo
-
----
-
-## Estructura de Módulos Planificada
-
-```
-windloadjm/
-├── __init__.py
-├── terrain.py              # Categorías de terreno, perfiles de velocidad, Kz
-├── pressure.py             # qz, Cp (presión/succión), GCpi (interna), factor G
-├── envelope.py             # MWFRS Method 1 (directional) y Method 2 (envelope)
-├── components.py           # C&C para fachadas, cubiertas, zonas de borde/esquina
-├── topography.py           # Factores Kzt (colinas, escarpes)
-├── codes/
-│   ├── __init__.py
-│   ├── ec1_1_4.py          # EN 1991-1-4: qp(z), ce(z), cpe, cpi
-│   ├── asce7_26.py         # ASCE 7-22: Chapters 26-31 (Kz, Kzt, Kd, V)
-│   └── nsr10_b6.py         # NSR-10: Título B.6 (velocidad de diseño Colombia)
-├── export.py               # Genera load patterns para FastSAP / SAP2000 / ETABS
-└── tests/
-    ├── test_ec1.py
-    ├── test_asce7.py
-    └── test_nsr10.py
+```bash
+pip install git+https://github.com/jmurgass99/windloads.git
 ```
 
----
+Extras: `api` (REST), `ui` (Streamlit), `memos` (handcalcs), `dxf` (ezdxf), `test`.
 
-## Fuentes de Información
+## Inicio rápido
 
-### Normas y Códigos
-| Código | Capítulos/Secciones | Contenido |
-|--------|---------------------|-----------|
-| **EN 1991-1-4:2005** | §4 (velocidad), §5 (presión), §6 (fuerzas), §7 (presión en superficies) | Eurocódigo de acciones del viento |
-| **ASCE 7-22** | Cap. 26 (general), 27 (MWFRS directional), 28 (MWFRS envelope), 29 (other), 30 (C&C) | Estándar americano de cargas de viento |
-| **NSR-10 Título B.6** | §B.6.1 a §B.6.5 | Norma colombiana de diseño por viento |
-
-### Repositorios de Referencia (ya descargados en `Nuevos/`)
-- `pfse_starterkit-main` — Contiene ejemplos de cálculo de viento ASCE 7
-- `Python_For_Civil_Engineers-main` — Scripts de presión de viento
-
-### Documentación del Máster UPC
-- Los documentos de acción sísmica (`3 Seismic Action.pdf`) contienen la estructura base de cómo se definen espectros por tipo de suelo, que es análoga a cómo el viento varía por categoría de terreno.
-
-### Integración con FastSAP
-- `fastsap/loads.py` — Sistema existente de definición de cargas
-- `fastsap/cases.py` — Generador de combinaciones de carga
-- `fastsap/codes/` — 30+ módulos normativos (patrón a seguir)
-- `fastsap/audit_rules.py` — Se creará nueva categoría J (Wind) de auditoría
-
----
-
-## Criterio de Éxito
-- [ ] Calcular presión de viento sobre un edificio rectangular de N pisos según los 3 códigos
-- [ ] Resultados validados contra ejemplos resueltos del ASCE 7 Commentary
-- [ ] Load patterns generados e importables en SAP2000/ETABS
-- [ ] Suite de tests con ≥20 casos
-
-## Ecosystem
-
-This project is part of the **jmurgass99 structural engineering ecosystem**:
-
-- [fastsap](https://github.com/jmurgass99/fastsap) - orquestador SAP2000/ETABS
-- [dynamicsjmpro](https://github.com/jmurgass99/dynamicsjmpro) - SaaS frontend + backend
-- [dynamicsjm](https://github.com/jmurgass99/dynamicsjm) - motor dinamico
-- [foundationdesignjm](https://github.com/jmurgass99/foundationdesignjm) - cimentaciones
-- [windloadjm](https://github.com/jmurgass99/windloadjm) - cargas de viento
-- [seismicrecordsjm](https://github.com/jmurgass99/seismicrecordsjm) - records sismicos
-- [slopestabilityjm](https://github.com/jmurgass99/slopestabilityjm) - estabilidad de taludes
-- [steelconnectionjm](https://github.com/jmurgass99/steelconnectionjm) - conexiones de acero
-- [steeloptimizerjm](https://github.com/jmurgass99/steeloptimizerjm) - optimizacion GA
-- [coldformedjm](https://github.com/jmurgass99/coldformedjm) - acero conformado en frio
-- [fatiguejm](https://github.com/jmurgass99/fatiguejm) - analisis de fatiga
-- [firesteeljm](https://github.com/jmurgass99/firesteeljm) - analisis termico al fuego
-- [dxfstructuraljm](https://github.com/jmurgass99/dxfstructuraljm) - generacion DXF
-
-## Plano DXF de cargas de viento (Grupo G — IDEAS_20)
-
-Genera un plano con el contorno del edificio, flechas q·Cp por cara y
-cuadro/cajetín. Requiere `ezdxf` (`pip install windloadjm[dxf]`).
+Edificio de 30 x 20 m y 40 m de altura con tres normas:
 
 ```python
-from windloadjm.integration.dxf_wind_plan import from_wind_result, build_wind_plan_dxf
+from windloads import EC1WindLoad, ASCE7WindLoad, NSR10WindLoad
 
-plant = [(0, 0), (20, 0), (20, 12), (0, 12)]   # planta 20×12 m
-inp = from_wind_result({"qz_kPa": 1.05}, plant,
-                      project="Edif. JM", code="EC1-1-4")
-build_wind_plan_dxf(inp, "planta_viento.dxf")
+stories = [3.0] * 13 + [1.0]
+ec1 = EC1WindLoad(vb=26.0, terrain_cat="II", building_height=40, width=30, depth=20,
+                  story_heights=stories, enclosure="closed")
+res = ec1.compute()
+print(res["qp_top_Pa"], res["Vb_kN"], res["OTM_kNm"])     # presión de pico, cortante basal, vuelco
+forces = ec1.story_forces()                                 # fuerza por planta
+
+asce = ASCE7WindLoad(V=40.0, exposure="C", building_height=40, width=30, depth=20,
+                     story_heights=stories, risk_category="II", enclosure="enclosed")
+nsr = NSR10WindLoad(city_or_Vb="barranquilla", terrain_cat="B", building_height=40, width=30, depth=20,
+                    story_heights=stories, enclosure="cerrado")
 ```
+
+Exportación a programas de análisis:
+
+```python
+from windloads import EC1WindLoad, WindLoadCase, from_envelope, to_json, to_csv, to_sap_s2k, to_etabs_e2k
+
+ec1 = EC1WindLoad(vb=26.0, terrain_cat="II", building_height=40, width=30, depth=20,
+                  story_heights=[3.0] * 13 + [1.0], enclosure="closed")
+pattern = from_envelope(ec1.story_forces(), name="WX+", direction="+X")
+case = WindLoadCase(name="EC1_30x20x40", code="EC1", building={"B": 30, "D": 20, "H": 40, "stories": 13},
+                    patterns=[pattern], meta={"vb_ms": 26.0, "terrain": "II"})
+print(to_sap_s2k(pattern)[:200])        # fragmento .s2k para SAP2000; to_etabs_e2k, to_json y to_csv análogos
+```
+
+`examples/building_30x20x40.py` ejecuta el caso completo con las tres normas, componentes y revestimientos, y escribe JSON, CSV, `.s2k` y `.e2k` en `examples/out/`. `examples/02_three_codes_same_building.py` compara cortante basal y vuelco entre normas.
+
+## Módulos
+
+| Módulo | Contenido |
+|---|---|
+| `codes/` (`ec1_1_4`, `asce7_26`, `nsr10_b6`, `nch432`), `codes_multi` | Implementación por norma y despacho multinorma |
+| `terrain`, `topography`, `vb_atlas`, `vb_map`, `mri_generator` | Exposición, topografía, mapas de velocidad y periodo de retorno |
+| `pressure`, `cp_catalog`, `cp_techos_complejos`, `cc_pressure`, `solar_trackers` | Presiones y coeficientes |
+| `envelope`, `mwfrs_load_cases`, `components` | Envolventes y casos de carga |
+| `davenport`, `vortex_shedding`, `aeroelastic`, `cfd_pre` | Dinámica del viento |
+| `export`, `report_ec1`, `memos/` | Exportación, informe y memorias |
+| `sap_bridge` | Envío de patrones a SAP2000 (requiere `fastsap`, opcional) |
+| `api/` | REST con FastAPI |
+
+## Validación
+
+Tests golden con la cascada q_p de EN 1991-1-4 y fichas de la norma, ASCE 7-22, NSR-10 y NCh 432, más propiedades con hypothesis (353 tests).
+
+## Licencia
+
+MIT. Consulta [LICENSE](LICENSE).
+
+---
+
+Parte del toolkit estructural de código abierto **Loadpath**, de [Jesús Murgas](https://github.com/jmurgass99).

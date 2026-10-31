@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from windloadjm.codes.nsr10_b6 import (
+from windloads.codes.nsr10_b6 import (
     NSR10WindLoad,
     nsr10_basic_wind_speed,
     nsr10_zone_from_coords,

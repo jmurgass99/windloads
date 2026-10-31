@@ -1,8 +1,8 @@
 """Tests NCh 432 + Davenport."""
 import pytest
 
-from windloadjm.nch432 import NCh432Input, evaluate_nch432
-from windloadjm.davenport import DavenportInput, gust_factor_davenport
+from windloads.nch432 import NCh432Input, evaluate_nch432
+from windloads.davenport import DavenportInput, gust_factor_davenport
 
 
 class TestNCh432:

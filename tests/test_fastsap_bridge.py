@@ -1,9 +1,9 @@
-"""Tests del bridge windloadjm -> fastsap con mock COM."""
+"""Tests del bridge windloads -> fastsap con mock COM."""
 from __future__ import annotations
 from types import SimpleNamespace
 import pytest
 
-from windloadjm.integration import (
+from windloads.integration import (
     WindLoadAssignment, apply_wind_loads_to_sap,
     distribute_pressure_to_joints,
 )

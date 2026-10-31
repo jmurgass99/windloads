@@ -4,7 +4,7 @@ import pytest
 
 fastapi = pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
-from windloadjm.api.app import app
+from windloads.api.app import app
 
 
 client = TestClient(app)

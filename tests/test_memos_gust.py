@@ -10,12 +10,12 @@ from __future__ import annotations
 import pytest
 
 handcalcs = pytest.importorskip("handcalcs")
-from windloadjm.memos.gust_factor_memo import gust_factor_memo
+from windloads.memos.gust_factor_memo import gust_factor_memo
 
 
 class TestGustFactorMemo:
     def test_matches_canonical_davenport(self):
-        from windloadjm.davenport import DavenportInput, gust_factor_davenport
+        from windloads.davenport import DavenportInput, gust_factor_davenport
 
         latex, res = gust_factor_memo(natural_period_s=2.0, height_m=50.0)
         canon = gust_factor_davenport(

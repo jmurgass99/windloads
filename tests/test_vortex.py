@@ -1,7 +1,7 @@
 """Tests para vortex_shedding."""
 import pytest
 
-from windloadjm.vortex_shedding import (
+from windloads.vortex_shedding import (
     VortexInput, evaluate_vortex_shedding,
 )
 

@@ -38,7 +38,7 @@ valid_qh = st.floats(min_value=0.1, max_value=5.0)             # kPa
 def test_ec1_qp_positive(vb, height, width, depth, terrain):
     """qp(z) siempre > 0 para inputs físicamente válidos."""
     try:
-        from windloadjm.services.ec1 import EC1Input, compute_ec1
+        from windloads.services.ec1 import EC1Input, compute_ec1
     except ImportError:
         pytest.skip("services.ec1 no disponible")
     res = compute_ec1(EC1Input(vb=vb, height=height, width=width, depth=depth,
@@ -54,7 +54,7 @@ def test_ec1_qp_increases_with_height(vb, h1, h2, terrain):
     """Para el MISMO terrain category, qp crece con z."""
     assume(h1 < h2)
     try:
-        from windloadjm.services.ec1 import EC1Input, compute_ec1
+        from windloads.services.ec1 import EC1Input, compute_ec1
     except ImportError:
         pytest.skip("services.ec1 no disponible")
     r1 = compute_ec1(EC1Input(vb=vb, height=h1, width=20, depth=20,
@@ -73,7 +73,7 @@ def test_ec1_qp_increases_with_height(vb, h1, h2, terrain):
 @settings(max_examples=30, deadline=2000)
 def test_asce7_qz_positive(V, height, exposure):
     try:
-        from windloadjm.services.asce7 import ASCE7Input, compute_asce7
+        from windloads.services.asce7 import ASCE7Input, compute_asce7
     except ImportError:
         pytest.skip("services.asce7 no disponible")
     res = compute_asce7(ASCE7Input(V=V, height_ft=height,
@@ -87,7 +87,7 @@ def test_asce7_qz_positive(V, height, exposure):
 def test_asce7_higher_V_higher_qz(V, h):
     """qz crece monotónicamente con V² (manteniendo todo lo demás)."""
     try:
-        from windloadjm.services.asce7 import ASCE7Input, compute_asce7
+        from windloads.services.asce7 import ASCE7Input, compute_asce7
     except ImportError:
         pytest.skip("services.asce7 no disponible")
     base = compute_asce7(ASCE7Input(V=V, height_ft=h*3.28, width_ft=50,
@@ -106,7 +106,7 @@ def test_asce7_higher_V_higher_qz(V, h):
 def test_cc_zone_3_more_negative_than_zone_1(qh):
     """GCp negativo más severo en zona 3 (esquinas) que zona 1 (interior)."""
     try:
-        from windloadjm.services.components import CCInput, compute_cc
+        from windloads.services.components import CCInput, compute_cc
     except ImportError:
         pytest.skip("services.components no disponible")
     z1 = compute_cc(CCInput(zone=1, qh_kPa=qh))
@@ -124,7 +124,7 @@ def test_cc_zone_3_more_negative_than_zone_1(qh):
 def test_nsr10_barranquilla_higher_than_bogota(h):
     """Barranquilla (costa) tiene viento > Bogotá (altiplano) — invariante geográfica."""
     try:
-        from windloadjm.services.nsr10 import NSR10Input, compute_nsr10
+        from windloads.services.nsr10 import NSR10Input, compute_nsr10
     except ImportError:
         pytest.skip("services.nsr10 no disponible")
     bog = compute_nsr10(NSR10Input(city="Bogotá", height_m=h,

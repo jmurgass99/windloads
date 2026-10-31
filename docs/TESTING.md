@@ -1,4 +1,4 @@
-# WindLoadJm — Testing Guide
+# WindLoads — Testing Guide
 
 ## Filosofía
 
@@ -31,8 +31,8 @@ pytest -m property
 ## Streamlit dashboard
 
 ```bash
-pip install windloadjm[ui]
-streamlit run windloadjm/app/dashboard.py
+pip install windloads[ui]
+streamlit run windloads/app/dashboard.py
 ```
 
 ## Invariantes verificadas (hypothesis)

@@ -1,6 +1,6 @@
 """Tests for MRI generator."""
 import pytest
-from windloadjm.mri_generator import MRIInput, velocity_for_MRI, MRI_for_target_velocity
+from windloads.mri_generator import MRIInput, velocity_for_MRI, MRI_for_target_velocity
 
 
 def test_factor_increases_with_T_asce():

@@ -5,7 +5,7 @@ import pytest
 
 ezdxf = pytest.importorskip("ezdxf")
 
-from windloadjm.integration import dxf_wind_plan as dwp
+from windloads.integration import dxf_wind_plan as dwp
 
 
 def _square_plant(side: float = 20.0):

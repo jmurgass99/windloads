@@ -5,7 +5,7 @@ import math
 
 import pytest
 
-from windloadjm.aeroelastic import (
+from windloads.aeroelastic import (
     divergence_critical_velocity,
     flutter_2dof,
     galloping_critical_velocity,

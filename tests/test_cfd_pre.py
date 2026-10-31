@@ -1,12 +1,12 @@
-"""Tests unitarios para el preprocesador CFD OpenFOAM en WindLoadJm."""
+"""Tests unitarios para el preprocesador CFD OpenFOAM en WindLoads."""
 
 import pytest
 from fastapi.testclient import TestClient
-from windloadjm.cfd_pre import (
+from windloads.cfd_pre import (
     CfdWindTunnelInput,
     create_cfd_openfoam_pre,
 )
-from windloadjm.api.app import app
+from windloads.api.app import app
 
 client = TestClient(app)
 

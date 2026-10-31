@@ -1,5 +1,5 @@
 """Tests Vb map."""
-from windloadjm.vb_map import list_locations, lookup_Vb
+from windloads.vb_map import list_locations, lookup_Vb
 
 
 def test_lookup_existente_case_insensitive():

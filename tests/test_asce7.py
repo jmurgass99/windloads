@@ -6,9 +6,9 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from windloadjm.terrain import TerrainProfile
-from windloadjm.pressure import asce7_Cp_walls, WindPressure
-from windloadjm.codes.asce7_26 import ASCE7WindLoad
+from windloads.terrain import TerrainProfile
+from windloads.pressure import asce7_Cp_walls, WindPressure
+from windloads.codes.asce7_26 import ASCE7WindLoad
 
 
 class TestASCE7Terrain:

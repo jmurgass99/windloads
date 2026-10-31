@@ -12,7 +12,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from windloadjm.cc_pressure import (
+from windloads.cc_pressure import (
     corner_distance_a,
     get_GCp,
     get_cc_pressure,
@@ -22,7 +22,7 @@ from windloadjm.cc_pressure import (
     _A_HI_M2,
     _MIN_DESIGN_PRESSURE_PA,
 )
-from windloadjm.exceptions import ConfigurationError, GeometryError
+from windloads.exceptions import ConfigurationError, GeometryError
 
 
 # =========================================================================

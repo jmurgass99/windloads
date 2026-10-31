@@ -1,5 +1,5 @@
 """Tests viento multi-código."""
-from windloadjm.codes_multi import (
+from windloads.codes_multi import (
     AS1170WindInput, NSR10WindInput, SSENWindInput,
     evaluate_as1170, evaluate_nsr10_wind, evaluate_ss_en_wind,
 )

@@ -2,7 +2,7 @@
 """Cuatro casos de carga MWFRS — ASCE 7-22 §27.3.5 / Fig 27.3-8."""
 import pytest
 
-from windloadjm.mwfrs_load_cases import WindLoadCase, envelope, mwfrs_load_cases
+from windloads.mwfrs_load_cases import WindLoadCase, envelope, mwfrs_load_cases
 
 
 @pytest.fixture

@@ -1,54 +1,49 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "windloadjm"
+name = "windloads"
 version = "1.0.0"
-description = "Wind load calculation per EC1-1-4, ASCE 7-22 and NSR-10 B.6"
-authors = [{name = "Jesus Murga"}]
+description = "Wind loads to EN 1991-1-4, ASCE 7-22, NSR-10 B.6 and NCh 432: basic wind speed maps, exposure and topography, peak velocity pressure, external and internal pressure coefficients (walls, flat, mono and duo-pitch roofs, canopies, solar trackers), MWFRS load cases, Davenport gust factor, vortex shedding and aeroelastic checks."
+readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["numpy>=1.24", "jmstructural-common"]
+license = { text = "MIT" }
+authors = [{ name = "Jesús Murgas" }]
+keywords = ["wind-loads", "en-1991-1-4", "asce-7", "nsr-10", "pressure-coefficients", "gust-factor", "structural-engineering"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = ["numpy>=1.24", "pydantic>=2.0"]
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "pytest-cov"]
 api = ["fastapi>=0.100", "uvicorn[standard]>=0.20", "httpx>=0.25"]
-test = ["pytest>=7.0", "pytest-cov>=4.0", "coverage>=7.0", "hypothesis>=6.0"]
-ui = ["streamlit>=1.30", "plotly>=5.18"]
-memos = ["handcalcs>=1.6", "forallpeople>=2.6"]
+test = ["pytest>=7.0", "pytest-cov>=4.0", "hypothesis>=6.0", "pytest-timeout>=2.1"]
+ui = ["streamlit>=1.30"]
+memos = ["handcalcs>=1.6"]
 dxf = ["ezdxf>=1.0"]
 
+[project.urls]
+Homepage = "https://github.com/jmurgass99/windloads"
+Repository = "https://github.com/jmurgass99/windloads"
+Issues = "https://github.com/jmurgass99/windloads/issues"
+
 [tool.setuptools.packages.find]
-include = ["windloadjm*"]
+include = ["windloads*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
-    "unit: tests unitarios rápidos (<100ms)",
-    "integration: requieren stack completo",
-    "slow: duración > 5s",
+    "slow: tests lentos",
+    "integration: integración entre módulos",
+    "api: endpoints REST",
     "property: property-based con hypothesis",
 ]
-addopts = "--strict-markers"
-
-[tool.coverage.run]
-source = ["windloadjm"]
-omit = [
-    "windloadjm/_brand.py",
-    "windloadjm/app/*",
-    "tests/*",
-    "examples/*",
-]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "raise NotImplementedError",
-    "if __name__ == .__main__.:",
-    "if TYPE_CHECKING:",
-]
-fail_under = 75
-show_missing = true
-
-[tool.uv.sources]
-jmstructural-common = { workspace = true }

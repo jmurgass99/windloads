@@ -9,7 +9,7 @@ from __future__ import annotations
 import pytest
 
 handcalcs = pytest.importorskip("handcalcs")
-from windloadjm.memos.ec1_pressure_memo import ec1_peak_pressure_memo
+from windloads.memos.ec1_pressure_memo import ec1_peak_pressure_memo
 
 
 class TestEC1PressureMemo:

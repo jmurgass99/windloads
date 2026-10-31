@@ -1,4 +1,4 @@
-"""Tests del exportador FastSAPWindPatternExporter (windloadjm -> fastsap).
+"""Tests del exportador FastSAPWindPatternExporter (windloads -> fastsap).
 
 Cubre dos defectos del OAPI:
   1. Conversion de unidades kN -> N (SAP usa N internamente, igual que el
@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from windloadjm.integration.fastsap_load_patterns import (
+from windloads.integration.fastsap_load_patterns import (
     WindLoadPattern,
     FastSAPWindPatternExporter,
 )

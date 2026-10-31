@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from windloadjm.vb_atlas import vb_for, list_vb, VbEntry
+from windloads.vb_atlas import vb_for, list_vb, VbEntry
 
 
 def test_atlas_has_thirty_per_country():

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""test_wind_bridge_units.py — Pruebas de unidades físicas para el puente WindLoadJm.
+"""test_wind_bridge_units.py — Pruebas de unidades físicas para el puente WindLoads.
 
 Verifica rigurosamente la conversión dimensional:
     presión en Pa [N/m^2] -> q_kPa = p_Pa / 1000.0 [kN/m^2]
@@ -18,7 +18,7 @@ from __future__ import annotations
 import math
 import pytest
 
-from jmstructural_common.model import (
+from windloads._common.model import (
     Element,
     Material,
     Model,
@@ -26,7 +26,7 @@ from jmstructural_common.model import (
     Restraint,
     SectionRef,
 )
-from windloadjm.sap_bridge import apply_wind_to_model, wind_to_load_pattern
+from windloads.sap_bridge import apply_wind_to_model, wind_to_load_pattern
 
 
 class TestWindBridgePhysicalUnits:

@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 handcalcs = pytest.importorskip("handcalcs")
-from windloadjm.memos import mwfrs_directional_memo
+from windloads.memos import mwfrs_directional_memo
 
 
 def test_mwfrs_typical_building():

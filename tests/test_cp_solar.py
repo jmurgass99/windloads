@@ -1,8 +1,8 @@
 """Tests Cp catalog + solar trackers."""
 import pytest
 
-from windloadjm.cp_catalog import CP_CATALOG, list_geometries, lookup_cp
-from windloadjm.solar_trackers import SolarTrackerInput, evaluate_solar_tracker
+from windloads.cp_catalog import CP_CATALOG, list_geometries, lookup_cp
+from windloads.solar_trackers import SolarTrackerInput, evaluate_solar_tracker
 
 
 class TestCp:

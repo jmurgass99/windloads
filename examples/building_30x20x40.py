@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from windloadjm import (
+from windloads import (
     EC1WindLoad,
     ASCE7WindLoad,
     NSR10WindLoad,

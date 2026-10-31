@@ -2,7 +2,7 @@
 from __future__ import annotations
 import pytest
 
-from windloadjm.exceptions import (
+from windloads.exceptions import (
     WindLoadError, CodeError, GeometryError,
     ConfigurationError, DependencyError,
 )
@@ -32,6 +32,6 @@ def test_can_catch_specific():
 
 
 def test_reexport_from_package():
-    import windloadjm
-    assert windloadjm.WindLoadError is WindLoadError
-    assert windloadjm.CodeError is CodeError
+    import windloads
+    assert windloads.WindLoadError is WindLoadError
+    assert windloads.CodeError is CodeError

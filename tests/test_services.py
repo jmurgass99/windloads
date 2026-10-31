@@ -2,11 +2,11 @@
 from __future__ import annotations
 import pytest
 
-from windloadjm.services.ec1 import EC1Input, compute_ec1, EC1Result
-from windloadjm.services.asce7 import ASCE7Input, compute_asce7, ASCE7Result
-from windloadjm.services.nsr10 import NSR10Input, compute_nsr10, NSR10Result
-from windloadjm.services.components import CCInput, compute_cc, CCResult
-from windloadjm.services.export import ExportInput, export_to, ExportResult
+from windloads.services.ec1 import EC1Input, compute_ec1, EC1Result
+from windloads.services.asce7 import ASCE7Input, compute_asce7, ASCE7Result
+from windloads.services.nsr10 import NSR10Input, compute_nsr10, NSR10Result
+from windloads.services.components import CCInput, compute_cc, CCResult
+from windloads.services.export import ExportInput, export_to, ExportResult
 
 
 def test_ec1_basic():

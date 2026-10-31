@@ -1,4 +1,4 @@
-"""Configuración compartida de pytest para WindLoadJm."""
+"""Configuración compartida de pytest para WindLoads."""
 from __future__ import annotations
 import sys
 from pathlib import Path

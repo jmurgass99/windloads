@@ -1,7 +1,7 @@
 """Golden EN 1991-1-4 — cascada completa c_r → v_m → I_v → q_p.
 
 Oráculo: el TEXTO DE LA NORMA (EN 1991-1-4:2005+A1:2010), no fichas del máster
-ni la ejecución de ``windloadjm``. Toda la cadena se deriva a mano abajo y los
+ni la ejecución de ``windloads``. Toda la cadena se deriva a mano abajo y los
 valores literales resultantes son los que se asertan (ningún assert re-deriva
 la fórmula con constantes del propio módulo bajo prueba).
 
@@ -63,7 +63,7 @@ import math
 
 import pytest
 
-from windloadjm.terrain import TerrainProfile
+from windloads.terrain import TerrainProfile
 
 
 RHO_EN = 1.25   # kg/m³ — valor recomendado EN 1991-1-4 §4.5

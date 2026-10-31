@@ -30,7 +30,7 @@ F*(F + 7*k) con F = k*ln(max(z,Z)/L) es exactamente
 REGLA DE ORO de la campana: no fiarse de los numeros impresos. Todos los
 oraculos de este fichero se recalcularon a mano (formulas EN 1991-1-4
 Ec. 4.4, 4.5, 4.7, 4.8, 4.10 transcritas de la norma, sin llamar a
-``windloadjm`` para generar el oraculo) antes de anclarlos.
+``windloads`` para generar el oraculo) antes de anclarlos.
 
 ERRATAS DOCUMENTADAS (no ancladas al valor impreso)
 ---------------------------------------------------
@@ -51,7 +51,7 @@ ERRATAS DOCUMENTADAS (no ancladas al valor impreso)
 
 DISCREPANCIA DE DATOS (documentada, NO anclada, NO corregida)
 -------------------------------------------------------------
-``windloadjm/vb_atlas.py`` asigna Barcelona = 27 m/s con nota "Zona B" y
+``windloads/vb_atlas.py`` asigna Barcelona = 27 m/s con nota "Zona B" y
 Cadiz = 26 m/s; la ficha W00483 describe Zona B = costa atlantica (27) y
 Zona C = costa mediterranea (29), lo que situaria Barcelona (costa
 mediterranea) en Zona C = 29 m/s y Cadiz (costa atlantica) en Zona B = 27.
@@ -64,11 +64,11 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from windloadjm.terrain import TerrainProfile
-from windloadjm.pressure import ec1_cpe_walls, WindPressure
-from windloadjm.codes.ec1_1_4 import EC1WindLoad
-from windloadjm.memos.ec1_pressure_memo import ec1_peak_pressure_memo
-from windloadjm.vb_atlas import vb_for, list_vb
+from windloads.terrain import TerrainProfile
+from windloads.pressure import ec1_cpe_walls, WindPressure
+from windloads.codes.ec1_1_4 import EC1WindLoad
+from windloads.memos.ec1_pressure_memo import ec1_peak_pressure_memo
+from windloads.vb_atlas import vb_for, list_vb
 
 
 # ---------------------------------------------------------------------------

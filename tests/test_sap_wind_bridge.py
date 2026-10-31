@@ -1,9 +1,9 @@
-"""Tests for the pure-data WindLoadJm -> jmstructural-common / fastsap bridge."""
+"""Tests for the pure-data WindLoads -> jmstructural-common / fastsap bridge."""
 from __future__ import annotations
 import pytest
 
-from windloadjm.sap_bridge import wind_to_load_pattern, apply_wind_to_model
-from jmstructural_common.model import Model, Node, Element, SectionRef, Material, LoadPattern, ElementLoad
+from windloads.sap_bridge import wind_to_load_pattern, apply_wind_to_model
+from windloads._common.model import Model, Node, Element, SectionRef, Material, LoadPattern, ElementLoad
 
 
 class TestWindToLoadPatternBridge:

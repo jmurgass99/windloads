@@ -7,10 +7,10 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from windloadjm.terrain import TerrainProfile
-from windloadjm.pressure import ec1_cpe_walls, WindPressure
-from windloadjm.codes.ec1_1_4 import EC1WindLoad
-from windloadjm.topography import (
+from windloads.terrain import TerrainProfile
+from windloads.pressure import ec1_cpe_walls, WindPressure
+from windloads.codes.ec1_1_4 import EC1WindLoad
+from windloads.topography import (
     ec1_orography_factor,
     ec1_orography_factor_A3,
 )

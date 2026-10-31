@@ -11,7 +11,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from windloadjm.components import (
+from windloads.components import (
     ComponentsAndCladding,
     gable_roof_GCp,
     gable_roof_zones,
