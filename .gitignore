@@ -60,8 +60,6 @@ Documentos de referencia */
 *.sqlite3
 
 # herramientas locales de agentes
-.claude-flow/
-.claude/
 
 # salidas de ficheros de los ejemplos (DXF, JSON, s2k/e2k, memorias, caso OpenFOAM)
 examples/out/
