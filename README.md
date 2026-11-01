@@ -1,12 +1,30 @@
-# windloads
+# windloads — cargas de viento sobre edificios y estructuras en Python
 
-Cargas de viento multinorma: EN 1991-1-4, ASCE 7-22, NSR-10 B.6 y NCh 432. Velocidad básica por mapa y ciudad, rugosidad y topografía, presión de velocidad de pico, coeficientes de presión exterior e interior (muros, cubiertas planas, a un agua y a dos aguas, marquesinas, cubiertas complejas, seguidores solares), casos de carga MWFRS, componentes y revestimientos, factor de ráfaga de Davenport, desprendimiento de vórtices y comprobaciones aeroelásticas, generador de velocidades por periodo de retorno y exportación de fuerzas por planta a JSON, CSV, SAP2000 y ETABS.
+Presión pico de EN 1991-1-4 con categorías de terreno y orografía del Anexo A.3, coeficientes de presión de muros y cubiertas (Tablas 7.1 a 7.4) y fuerzas por planta con alturas de referencia y falta de correlación; presión de velocidad, factor topográfico, fuerzas del MWFRS, los cuatro casos de torsión y componentes y revestimientos de ASCE 7; NSR-10 B.6 por el procedimiento de ASCE 7-05; factor de ráfaga de Davenport, desprendimiento de torbellinos y galope del Anexo E; memorias con handcalcs, API REST y exportación a JSON, CSV, SAP2000, ETABS, modelo canónico, DXF y OpenFOAM. Dependencias: `numpy` y `pydantic`.
 
 [![CI](https://github.com/jmurgass99/windloads/actions/workflows/ci.yml/badge.svg)](https://github.com/jmurgass99/windloads/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Paquete independiente. Dependencias: `numpy`, `pydantic`.
+## Qué problema resuelve
+
+La carga de viento de un edificio corriente se decide con media docena de tablas y dos o tres fórmulas, pero cada paso esconde una elección que cambia el resultado un 10-50 %: qué altura de referencia lleva cada franja de fachada, si la presión interior se cancela o no, cuánto vale el sotavento para un L/B que no está en la tabla, si el factor de importancia multiplica la velocidad o la presión. `windloads` hace esas cuentas con la fórmula de la norma a la vista, compara el resultado con un cálculo a mano dentro de cada ejemplo y marca como «sin contrastar» las tablas que no se han podido verificar con la fuente. En la versión 1.2.0 se corrigieron, contra el texto de EN 1991-1-4 y de ASCE 7, fallos que movían el cortante basal de EN 1991-1-4 entre −9 % y +52 %, el coeficiente de orografía a sotavento de una colina (1,00 en vez de 1,40), el criterio de galope y el factor de importancia de la NSR-10 (ver [CHANGELOG.md](CHANGELOG.md)).
+
+**Úsalo cuando**
+
+- necesites q_p(z) de EN 1991-1-4 para cualquier categoría de terreno, con c_o de colina o escarpe (Anexo A.3), o q_z de ASCE 7 con K_z y K_zt;
+- quieras las fuerzas de viento por planta de un edificio rectangular con EN 1991-1-4 (z_e por franjas, D y E simultáneas, factor de falta de correlación), ASCE 7 o NSR-10, su cortante basal y su vuelco, y los cuatro casos de torsión de ASCE 7;
+- tengas que sacar c_pe de muros y cubiertas planas, a un agua o a dos aguas de EN 1991-1-4, o GCp de componentes y revestimientos de muros de ASCE 7, interpolados con el área;
+- estés predimensionando una chimenea, un poste o un dintel frente a torbellinos y galope (Anexo E) o el factor de ráfaga de una torre flexible;
+- quieras llevar las fuerzas a SAP2000, ETABS, un modelo propio, un plano DXF o un caso de partida de OpenFOAM, o exponerlas por una API REST.
+
+**No lo uses para**
+
+- edificios de forma no rectangular, cubiertas abovedadas, marquesinas o estructuras de celosía: las tablas de cubiertas complejas, cúpulas, antepechos y seguidores solares del paquete son indicativas y no salen de ninguna norma verificada;
+- el factor estructural c_s·c_d de EN 1991-1-4 ni el análisis dinámico de edificios esbeltos: c_s·c_d vale 1 (con un estado que lo declara sin justificar por encima de 15 m) y el factor de Davenport está simplificado;
+- elegir la velocidad básica de un emplazamiento: las tablas por ciudad (Colombia, Chile, España) no están contrastadas y no coinciden entre sí; usa el mapa oficial y pasa la velocidad como número;
+- el flameo de tableros o placas (el modelo 2-GDL del módulo `aeroelastic` no es válido) ni la interferencia entre cilindros;
+- ASCE 7-22 al pie de la letra: K_z usa las constantes de ASCE 7-16 y las tablas de cubierta de componentes y revestimientos no están contrastadas.
 
 ## Instalación
 
@@ -14,59 +32,913 @@ Paquete independiente. Dependencias: `numpy`, `pydantic`.
 pip install git+https://github.com/jmurgass99/windloads.git
 ```
 
-Extras: `api` (REST), `ui` (Streamlit), `memos` (handcalcs), `dxf` (ezdxf), `test`.
+Extras: `api` (FastAPI, uvicorn, httpx), `memos` (handcalcs; sin él las memorias devuelven los mismos números con LaTeX vacío), `dxf` (ezdxf para el plano de cargas), `ui` (Streamlit), `test`. Para desarrollo: `git clone`, `pip install -e ".[test,api,memos,dxf]"`, `pytest -q` (36 ficheros de tests; `tests/test_examples.py` ejecuta los 33 ejemplos como subprocesos). En Windows, si la consola no es UTF-8, ejecuta los ejemplos con `python -X utf8 examples/<nombre>.py`. Los ejemplos escriben sus ficheros (JSON, CSV, .s2k, .e2k, DXF, LaTeX, Markdown, caso OpenFOAM) en `examples/out/`, que no se versiona, y su salida de consola en `examples/output/`.
 
-## Inicio rápido
+## Capacidades
 
-Edificio de 30 x 20 m y 40 m de altura con tres normas:
+| Capacidad | Módulos | Norma o referencia | Casos de uso |
+|---|---|---|---|
+| Viento de referencia: q_p(z) por categoría de terreno, K_z y q_z de ASCE 7, coeficiente de orografía c_o del Anexo A.3 y K_zt de ASCE 7, velocidades de la NSR-10 por zona, ciudad y coordenadas, conversión a otro periodo de retorno, AS 1170.2, SS EN y NCh 432 | `terrain`, `topography`, `codes.nsr10_b6`, `vb_atlas`, `vb_map`, `mri_generator`, `codes_multi`, `nch432` | EN 1991-1-4 §4.2-4.5, Tabla 4.1, Anexo A.3; ASCE 7-10 Fig. 26.8-1; K_z con las constantes anteriores a ASCE 7-22 | [6 casos](#1-viento-de-referencia-presión-pico-terreno-orografía-y-periodo-de-retorno) |
+| Coeficientes de presión: muros (zonas A-E) y cubiertas plana, a un agua y a dos aguas de EN 1991-1-4 con interpolación en h/d, pendiente y área; Cp de muros del MWFRS de ASCE 7; GCp de componentes y revestimientos con el área eficaz y el mínimo de 16 psf; catálogos indicativos | `pressure`, `components`, `cc_pressure`, `cp_catalog`, `cp_techos_complejos`, `solar_trackers` | EN 1991-1-4 Tablas 7.1, 7.2, 7.3a, 7.4a, 7.4b, Fig. 7.2, §7.2.9; ASCE 7-16 Fig. 27.3-1, §30.3 | [6 casos](#2-coeficientes-de-presión-y-componentes-y-revestimientos) |
+| Fuerzas sobre el edificio: fuerzas por planta, cortante basal y vuelco con EN 1991-1-4, ASCE 7 y NSR-10, cuatro casos de carga del MWFRS con torsión | `codes.ec1_1_4`, `codes.asce7_26`, `codes.nsr10_b6`, `envelope`, `mwfrs_load_cases` | EN 1991-1-4 §5.3, §7.2.2, Fig. 7.4; ASCE 7-16 Fig. 27.3-1 y Fig. 27.3-8; NSR-10 B.6 (ASCE 7-05) | [6 casos](#3-fuerzas-sobre-el-edificio-mwfrs) |
+| Dinámica y aeroelasticidad: factor de ráfaga de Davenport, torbellinos (v_crit, Sc, amplitud E.7), galope (E.18-E.19), números de Strouhal, divergencia (E.24) | `davenport`, `vortex_shedding`, `aeroelastic` | EN 1991-1-4 Anexo E (Tablas E.1, E.2, E.5, E.7); ASCE 7 §26.11 (forma simplificada) | [5 casos](#4-respuesta-dinámica-y-aeroelasticidad) |
+| Memorias, informes, servicios y API REST: memorias con handcalcs, informe Markdown de EN 1991-1-4, capa de servicios y FastAPI | `memos`, `report_ec1`, `services`, `api` | — | [5 casos](#5-memorias-informes-servicios-y-api-rest) |
+| Exportación e integraciones: patrones por planta a JSON, CSV, .s2k y .e2k con reparto a nudos, modelo canónico, puentes hacia SAP2000, plano DXF y preprocesador de OpenFOAM | `export`, `sap_bridge`, `integration`, `cfd_pre` | — | [5 casos](#6-exportación-e-integraciones) |
 
-```python
-from windloads import EC1WindLoad, ASCE7WindLoad, NSR10WindLoad
+Los 33 scripts de `examples/` se ejecutaron en un entorno limpio antes de publicarse; su salida está en `examples/output/` y es la que se reproduce aquí. Casi todos rehacen el resultado del paquete a mano, con la fórmula de la norma escrita aparte, o con otro módulo independiente.
 
-stories = [3.0] * 13 + [1.0]
-ec1 = EC1WindLoad(vb=26.0, terrain_cat="II", building_height=40, width=30, depth=20,
-                  story_heights=stories, enclosure="closed")
-res = ec1.compute()
-print(res["qp_top_Pa"], res["Vb_kN"], res["OTM_kNm"])     # presión de pico, cortante basal, vuelco
-forces = ec1.story_forces()                                 # fuerza por planta
+## Casos de uso
 
-asce = ASCE7WindLoad(V=40.0, exposure="C", building_height=40, width=30, depth=20,
-                     story_heights=stories, risk_category="II", enclosure="enclosed")
-nsr = NSR10WindLoad(city_or_Vb="barranquilla", terrain_cat="B", building_height=40, width=30, depth=20,
-                    story_heights=stories, enclosure="cerrado")
+### 1. Viento de referencia: presión pico, terreno, orografía y periodo de retorno
+
+#### q_p(z) en las cinco categorías de terreno y la cascada c_r → v_m → I_v → q_p a mano en 10 m
+
+<details><summary>Salida real de <code>python examples/ec1_peak_velocity_pressure_profile_terrain_categories_0_to_iv_and_hand_check_of_the_cascade_at_10_m.py</code></summary>
+
+```text
+v_b = 26.0 m/s, q_b = ½·ρ·v_b² = 422.5 Pa
+
+q_p(z) [Pa] y c_e = q_p/q_b por categoría (Tabla 4.1: z0 / z_min)
+   z [m]      0 (0.003)       I (0.01)      II (0.05)      III (0.3)       IV (1.0)
+       2      903  2.14      793  1.88      601  1.42      541  1.28      497  1.18
+       5     1100  2.60     1000  2.37      815  1.93      541  1.28      497  1.18
+      10     1261  2.98     1170  2.77      994  2.35      722  1.71      497  1.18
+      20     1431  3.39     1351  3.20     1187  2.81      922  2.18      695  1.64
+      30     1536  3.64     1463  3.46     1307  3.09     1048  2.48      821  1.94
+      50     1672  3.96     1609  3.81     1465  3.47     1215  2.88      990  2.34
+     100     1866  4.42     1818  4.30     1693  4.01     1459  3.45     1240  2.93
+
+Comprobación a mano, terreno II, z = 10 m:
+  k_r = 0,19·(0,05/0,05)^0,07 = 0.1900;  c_r = k_r·ln(10/0,05) = 1.00668;  v_m = c_r·v_b = 26.174 m/s
+  I_v = 1/ln(200) = 0.18874;  q_p = (1 + 7·I_v)·½·ρ·v_m² = 993.84 Pa  (TerrainProfile: 993.84 Pa, diferencia +0.0e+00 Pa);  c_e = 2.3523
+
+A 10 m la categoría 0 da 2.54 veces la q_p de la categoría IV; de II a III la presión baja un 27 %.
+Por debajo de z_min la presión es constante: categoría IV, q_p(3 m) = q_p(10 m) = 497 Pa.
+No incluye el coeficiente de orografía (ver el ejemplo orography_*), ni c_dir/c_season distintos de 1, ni el anejo nacional: v_b,0 y los parámetros de la Tabla 4.1 son los recomendados.
 ```
 
-Exportación a programas de análisis:
+</details>
 
-```python
-from windloads import EC1WindLoad, WindLoadCase, from_envelope, to_json, to_csv, to_sap_s2k, to_etabs_e2k
+#### K_z y q_z de ASCE 7 en exposiciones B, C y D, y lo que cambió ASCE 7-22
 
-ec1 = EC1WindLoad(vb=26.0, terrain_cat="II", building_height=40, width=30, depth=20,
-                  story_heights=[3.0] * 13 + [1.0], enclosure="closed")
-pattern = from_envelope(ec1.story_forces(), name="WX+", direction="+X")
-case = WindLoadCase(name="EC1_30x20x40", code="EC1", building={"B": 30, "D": 20, "H": 40, "stories": 13},
-                    patterns=[pattern], meta={"vb_ms": 26.0, "terrain": "II"})
-print(to_sap_s2k(pattern)[:200])        # fragmento .s2k para SAP2000; to_etabs_e2k, to_json y to_csv análogos
+<details><summary>Salida real de <code>python examples/asce7_velocity_pressure_coefficient_kz_exposures_b_c_d_heights_3_to_150_m_hand_check_and_7_22_profile_note.py</code></summary>
+
+```text
+V = 50.0 m/s, K_d = 0,85, K_zt = 1;  q_z = 0,613·K_z·K_zt·K_d·V²
+   z [m]   K_z B  q_z B [Pa]   K_z C  q_z C [Pa]   K_z D  q_z D [Pa]
+    3.00    0.575        749    0.849       1106    1.030       1342
+    4.57    0.575        749    0.849       1106    1.030       1342
+    6.00    0.621        809    0.899       1171    1.080       1407
+   10.00    0.719        936    1.001       1304    1.180       1538
+   15.00    0.807       1051    1.090       1420    1.267       1650
+   20.00    0.876       1141    1.158       1509    1.332       1735
+   30.00    0.984       1281    1.261       1643    1.429       1861
+   50.00    1.138       1483    1.405       1830    1.562       2034
+  100.00    1.388       1808    1.625       2117    1.762       2295
+  150.00    1.558       2030    1.770       2306    1.891       2463
+
+Comprobación a mano, exposición C, z = 10 m:
+  K_z = 2,01·(10/274,32)^(2/9,5) = 1.0009 (TerrainProfile 1.0009);  q_z = 0,613·1.0009·0,85·50² = 1303.8 Pa (TerrainProfile 1303.8 Pa)
+  Control: K_z(33 ft = 10,06 m, C) = 1.002, el valor de referencia ≈ 1,0 de la exposición C.
+
+A 10 m la exposición D da 1.64 veces la presión de la B. Por debajo de 4,57 m K_z es constante (B: 0.575 a 3 m y a 4,57 m).
+TerrainProfile no aplica el factor de elevación K_e (solo lo acepta la memoria asce7_mwfrs): para emplazamientos altos hay que multiplicar q_z a mano.
 ```
 
-`examples/building_30x20x40.py` ejecuta el caso completo con las tres normas, componentes y revestimientos, y escribe JSON, CSV, `.s2k` y `.e2k` en `examples/out/`. `examples/02_three_codes_same_building.py` compara cortante basal y vuelco entre normas.
+</details>
 
-## Módulos
+#### c_o a lo largo de una colina y de un escarpe (Anexo A.3) y K_zt de cresta, escarpe y colina de ASCE 7
 
-| Módulo | Contenido |
-|---|---|
-| `codes/` (`ec1_1_4`, `asce7_26`, `nsr10_b6`, `nch432`), `codes_multi` | Implementación por norma y despacho multinorma |
-| `terrain`, `topography`, `vb_atlas`, `vb_map`, `mri_generator` | Exposición, topografía, mapas de velocidad y periodo de retorno |
-| `pressure`, `cp_catalog`, `cp_techos_complejos`, `cc_pressure`, `solar_trackers` | Presiones y coeficientes |
-| `envelope`, `mwfrs_load_cases`, `components` | Envolventes y casos de carga |
-| `davenport`, `vortex_shedding`, `aeroelastic`, `cfd_pre` | Dinámica del viento |
-| `export`, `report_ec1`, `memos/` | Exportación, informe y memorias |
-| `sap_bridge` | Envío de patrones a SAP2000 (requiere `fastsap`, opcional) |
-| `api/` | REST con FastAPI |
+<details><summary>Salida real de <code>python examples/orography_factor_en1991_annex_a3_hill_and_escarpment_profiles_hand_check_and_asce7_kzt_ridge_escarpment_hill.py</code></summary>
 
-## Validación
+```text
+EN 1991-1-4 A.3: H = 40.0 m, L_u = L_d = 200.0 m, Φ = 0.2, L_e = 200.0 m, z = 10.0 m
+   x [m]    x/L  c_o colina  c_o escarpe
+    -300  -1.50      1.0075       1.0075
+    -200  -1.00      1.0275       1.0275
+    -100  -0.50      1.1008       1.1008
+     -50  -0.25      1.1927       1.1927
+       0   0.00      1.3685       1.3685
+      20   0.10      1.3105       1.3424
+      50   0.25      1.2401       1.2646
+     100   0.50      1.1565       1.2040
+     200   1.00      1.0664       1.1420
+     400   2.00      1.0120       1.0785
+     700   3.50      1.0000       1.0262
 
-Tests golden con la cascada q_p de EN 1991-1-4 y fichas de la norma, ASCE 7-22, NSR-10 y NCh 432, más propiedades con hypothesis (353 tests).
+A mano, colina a sotavento x = 100 m (X/L_d = 0,5; z/L_e = 0,05):
+  (A.12) A = 0.92125; (A.13) B = -1.71340; s = A·e^(B·0,5) = 0.39113; c_o = 1 + 2·s·0,2 = 1.15645 (función 1.15645)
+A mano, escarpe a sotavento x = 50 m (X/L_e = 0,25; z/L_e = 0,05 → 0,1 en A.8-A.10):
+  A = -0.0202, B = -0.5213, C = 0.3550; s = A·log²(0,25) + B·log(0,25) + C = 0.66153; c_o = 1.26461 (función 1.26461)
+En la cresta c_o = 1.369: la presión pico crece del orden de c_o² = 1.87 veces (más exactamente q_p ∝ c_o·(c_o + 7·I_v), porque I_v se divide por c_o).
+
+ASCE 7 Fig. 26.8-1, H = 30 m, L_h = 100 m, exposición C, z = 10 m:
+   x [m]  cresta 2-D  escarpe 2-D  colina 3-D
+    -150       1.000        1.000       1.000
+    -100       1.226        1.137       1.146
+     -50       1.476        1.282       1.301
+       0       1.748        1.437       1.467
+      50       1.476        1.378       1.301
+     100       1.226        1.320       1.146
+     200       1.000        1.208       1.000
+     300       1.000        1.102       1.000
+  A mano en la cresta 2-D: K1 = 1,45·0,3 = 0,435; K3 = e^(−3·0,1) = 0.7408; K_zt = (1 + 0,435·0.7408)² = 1.7484
+  A 200 m a sotavento el escarpe conserva K_zt = 1.208 (μ = 4) mientras la cresta y la colina ya valen 1,000 (μ = 1,5).
+```
+
+</details>
+
+#### Velocidad básica de la NSR-10: zonas, ciudades y coordenadas, y las tres tablas del paquete frente al máximo de la región 5
+
+<details><summary>Salida real de <code>python examples/nsr10_basic_wind_speed_by_zone_city_and_coordinates_three_package_tables_compared_against_region_limits.py</code></summary>
+
+```text
+Zonas NSR-10 del paquete (zona 2 y 4 sin contrastar):
+  zona 1: 17.0 m/s =    61 km/h
+  zona 2: 22.0 m/s =    79 km/h
+  zona 3: 28.0 m/s =   101 km/h
+  zona 4: 33.0 m/s =   119 km/h
+  zona 5: 36.0 m/s =   130 km/h
+
+  ciudad         nsr10_basic    zona→V  vb_atlas  vb_map  observación
+  Barranquilla          45.0    5→36.0      40.0    40.0  dispersión 9 m/s; > 36 m/s (máx. región 5)
+  Cartagena             45.0    5→36.0      36.0    33.0  dispersión 12 m/s; > 36 m/s (máx. región 5)
+  Santa Marta           40.0    5→36.0      36.0     —    dispersión 4 m/s; > 36 m/s (máx. región 5)
+  Riohacha              45.0    5→36.0      40.0     —    dispersión 9 m/s; > 36 m/s (máx. región 5)
+  Monteria              30.0    4→33.0      33.0     —    dispersión 3 m/s
+  Bogota                27.0    3→28.0      26.0    26.0  dispersión 2 m/s
+  Medellin              27.0    3→28.0      26.0    26.0  dispersión 2 m/s
+  Cali                  27.0    3→28.0      33.0    33.0  dispersión 6 m/s
+  Bucaramanga           30.0    4→33.0      28.0     —    dispersión 5 m/s
+  Cucuta                35.0    4→33.0      28.0     —    dispersión 7 m/s
+  Villavicencio         27.0    3→28.0      28.0     —    dispersión 1 m/s
+  Leticia               25.0    1→17.0      26.0     —    dispersión 9 m/s
+  Tumaco                30.0    4→33.0      30.0     —    dispersión 3 m/s
+
+13 de 13 ciudades tienen valores distintos según la tabla; 4 (barranquilla, cartagena, santa_marta, riohacha) reciben de nsr10_basic_wind_speed más de 36 m/s, por encima de la región 5. Usa la Figura B.6.4-1 del reglamento y pasa la velocidad como número.
+
+Clasificación por coordenadas (rectángulos aproximados de la figura, no polígonos):
+  Barranquilla  ( 10.96,  -74.80) → zona 5 → 36 m/s
+  Bogotá        (  4.71,  -74.07) → zona 3 → 28 m/s
+  Leticia       ( -4.21,  -69.94) → zona 1 → 17 m/s
+  Tumaco        (  1.80,  -78.76) → zona 4 → 33 m/s
+  Yopal         (  5.34,  -72.39) → zona 3 → 28 m/s
+  Madrid (40,4; -3,7) → ValueError: Coordinates (40.4, -3.7) fall outside Colombia (approx. bbox lat∈[-4.5,13.5], lon∈[-82.0,-66.5]).
+```
+
+</details>
+
+#### Otro periodo de retorno: c_prob de EN 1991-1-4, tabla «ASCE» y aproximación AS 1170.2
+
+<details><summary>Salida real de <code>python examples/mean_recurrence_interval_conversion_en1991_cprob_vs_asce_table_and_as1170_approximation_10_to_1700_years.py</code></summary>
+
+```text
+V_50 = 26.0 m/s
+  T [años]  EN c_prob   V EN  ASCE f  V ASCE   AS f   V AS
+        10     0.9025  23.46   0.760   19.76  0.747  19.43
+        25     0.9597  24.95   0.840   21.84  0.898  23.36
+        50     1.0000  26.00   0.900   23.40  1.000  26.00
+       100     1.0385  27.00   0.950   24.70  1.094  28.44
+       300     1.0965  28.51   1.030   26.78  1.230  31.99
+       700     1.1391  29.62   1.070   27.82  1.328  34.52
+      1700     1.1820  30.73   1.130   29.38  1.424  37.02
+
+A mano, EN T = 100 años: c_prob = √[(1 − 0,2·ln(−ln 0,99))/(1 − 0,2·ln(−ln 0,98))] = 1.03848 (función 1.03848); la presión crece con c_prob² = 1.0784.
+Tabla «ASCE»: factor en T = 50 años = 0.90, no 1: con V_50 = 26.0 m/s devuelve V(50) = 23.4 m/s (-10 %). Incoherente con su propia definición de entrada.
+Inversa (bisección, EN): V = 28 m/s corresponde a T ≈ 206 años con V_50 = 26.0 m/s.
+```
+
+</details>
+
+#### Mismo emplazamiento con AS 1170.2, SS EN, NCh 432 y las dos rutas de la NSR-10
+
+<details><summary>Salida real de <code>python examples/multi_code_velocity_pressure_as1170_ss_en_nch432_nsr10_same_site_and_unverified_coefficients.py</code></summary>
+
+```text
+Altura z = 20.0 m
+
+AS 1170.2, V_R = 45 m/s (M_d = M_s = M_t = 1):
+  TC1: M_z,cat = 1.200  V_site = 54.00 m/s  q = 1.750 kPa
+  TC2: M_z,cat = 1.000  V_site = 45.00 m/s  q = 1.215 kPa
+  TC3: M_z,cat = 0.890  V_site = 40.05 m/s  q = 0.962 kPa
+  TC4: M_z,cat = 0.750  V_site = 33.75 m/s  q = 0.683 kPa
+
+SS EN 1991-1-4, v_b = 26 m/s, frente a TerrainProfile (EN 1991-1-4 §4):
+    I: c_e = 3.198  q_p = 1.3512 kPa   TerrainProfile 1.3512 kPa  (diferencia +2.2e-16)
+   II: c_e = 2.810  q_p = 1.1872 kPa   TerrainProfile 1.1872 kPa  (diferencia +2.2e-16)
+  III: c_e = 2.182  q_p = 0.9219 kPa   TerrainProfile 0.9219 kPa  (diferencia +0.0e+00)
+   IV: c_e = 1.644  q_p = 0.6947 kPa   TerrainProfile 0.6947 kPa  (diferencia +1.1e-16)
+
+NCh 432 (V_b = 32 m/s, clase II) con las constantes del módulo y K_z con α/z_g de ASCE 7-05:
+  A: K_z = 0.519  q_z = 0.277 kN/m²
+  B: K_z = 0.553  q_z = 0.295 kN/m²   K_z ASCE 7-05 B: 0.876 (-37 %)
+  C: K_z = 0.952  q_z = 0.508 kN/m²   K_z ASCE 7-05 C: 1.158 (-18 %)
+  D: K_z = 1.188  q_z = 0.634 kN/m²   K_z ASCE 7-05 D: 1.332 (-11 %)
+
+NSR-10, V = 33 m/s, I = 1,15: evaluate_nsr10_wind (B/C/D) frente a NSR10WindLoad (categorías A-D):
+  exposición D → q_z = 0.8692 kPa   NSR10WindLoad categoría A → q_z = 0.8690 kPa  (cociente 0.9997)
+  exposición C → q_z = 0.7559 kPa   NSR10WindLoad categoría B → q_z = 0.7558 kPa  (cociente 0.9998)
+  exposición B → q_z = 0.5721 kPa   NSR10WindLoad categoría C → q_z = 0.5717 kPa  (cociente 0.9994)
+Las dos rutas NSR-10 coinciden con esa equivalencia de letras (el z_g de codes_multi está redondeado al metro); la categoría D de NSR10WindLoad (α = 5, z_g = 457 m) no tiene pareja en las exposiciones B/C/D.
+```
+
+</details>
+
+### 2. Coeficientes de presión y componentes y revestimientos
+
+#### Tabla 7.1 interpolada, factor de falta de correlación y presiones netas de la nave W00483
+
+<details><summary>Salida real de <code>python examples/ec1_wall_pressure_coefficients_table_7_1_zones_a_to_e_vs_h_over_d_local_cpe1_and_net_pressures_with_cpi.py</code></summary>
+
+```text
+Tabla 7.1 interpolada (c_pe,10) y factor de falta de correlación §7.2.2(3):
+    h/d      A      B      C      D      E    D−E      f
+   0.10  -1.20  -0.80  -0.50   0.70  -0.30   1.00  0.850
+   0.25  -1.20  -0.80  -0.50   0.70  -0.30   1.00  0.850
+   0.50  -1.20  -0.80  -0.50   0.73  -0.37   1.10  0.850
+   1.00  -1.20  -0.80  -0.50   0.80  -0.50   1.30  0.850
+   2.00  -1.20  -0.80  -0.50   0.80  -0.55   1.35  0.887
+   3.00  -1.20  -0.80  -0.50   0.80  -0.60   1.40  0.925
+   5.00  -1.20  -0.80  -0.50   0.80  -0.70   1.50  1.000
+   8.00  -1.20  -0.80  -0.50   0.80  -0.70   1.50  1.000
+
+Nave W00483: h = 10.0 m, d = 40.0 m, b = 40.0 m, terreno III, v_b = 27 m/s → q_p(10) = 778.75 Pa
+  e = min(b, 2h) = 20 m: zona A = e/5 = 4 m, B hasta e = 20 m, C el resto (20 m)
+  zona  c_pe,10  w c_pi=+0,2  w c_pi=−0,3  pésima [kPa]
+     A    -1.20       -1.090       -0.701        -1.090
+     B    -0.80       -0.779       -0.389        -0.779
+     C    -0.50       -0.545       -0.156        -0.545
+     D     0.70        0.389        0.779         0.779
+     E    -0.30       -0.389        0.000        -0.389
+  A mano zona A: q_p·(−1,2 − 0,2) = -1.090 kPa (fila A: -1.090). Hasta 1.2.0 la zona A usaba −1,0 y salía -0.934 kPa.
+
+c_pe local de la zona A según el área cargada (Figura 7.2):
+  A =  0.5 m²: c_pe = -1.400
+  A =  1.0 m²: c_pe = -1.400
+  A =  2.0 m²: c_pe = -1.340
+  A =  5.0 m²: c_pe = -1.260
+  A = 10.0 m²: c_pe = -1.200
+  A = 20.0 m²: c_pe = -1.200
+Para elementos de más de 10 m² vale c_pe,10; por debajo de 1 m², c_pe,1. Los muros con abertura dominante (c_pi = 0,75 o 0,90·c_pe de esa cara, §7.2.9(3)) no están implementados: EC1WindLoad los rechaza.
+```
+
+</details>
+
+#### Cubiertas plana, a un agua y a dos aguas: Tablas 7.2, 7.3a, 7.4a y 7.4b con interpolación en pendiente y área
+
+<details><summary>Salida real de <code>python examples/ec1_roof_cpe_tables_7_2_flat_7_3a_monopitch_7_4_duopitch_pitch_and_area_interpolation_hand_check.py</code></summary>
+
+```text
+Cubierta plana con aleros vivos (Tabla 7.2): c_pe,1 / c_pe,10
+  F      A = 1 m²: -2.50   A = 10 m²: -1.80
+  G      A = 1 m²: -2.00   A = 10 m²: -1.20
+  H      A = 1 m²: -1.20   A = 10 m²: -0.70
+  I_neg  A = 1 m²: -0.20   A = 10 m²: -0.20
+  I_pos  A = 1 m²:  0.20   A = 10 m²:  0.20
+
+A un agua, Tabla 7.3a, c_pe,10 (A = 10 m²): θ = 0° succión / presión y θ = 180°
+     α   F: 0°− 0°+ 180°   G: 0°− 0°+ 180°   H: 0°− 0°+ 180°
+     5   -1.7  0.0  -2.3   -1.2  0.0  -1.3   -0.6  0.0  -0.8
+    15   -0.9  0.2  -2.5   -0.8  0.2  -1.3   -0.3  0.2  -0.9
+    30   -0.5  0.7  -1.1   -0.5  0.7  -0.8   -0.2  0.4  -0.8
+    45    0.0  0.7  -0.6    0.0  0.7  -0.5    0.0  0.6  -0.7
+    60    0.7  0.7  -0.5    0.7  0.7  -0.5    0.7  0.7  -0.5
+    75    0.8  0.8  -0.5    0.8  0.8  -0.5    0.8  0.8  -0.5
+
+A dos aguas, Tabla 7.4a (θ = 0°, succión) y 7.4b (θ = 90°), c_pe,10:
+     α      F     G     H     I     J   |  F90   G90   H90   I90
+     5   -1.7  -1.2  -0.6  -0.6  -0.6   |  -1.6  -1.3  -0.7  -0.6
+    15   -0.9  -0.8  -0.3  -0.4  -1.0   |  -1.3  -1.3  -0.6  -0.5
+    30   -0.5  -0.5  -0.2  -0.4  -0.5   |  -1.1  -1.4  -0.8  -0.5
+    45    0.0   0.0   0.0  -0.2  -0.3   |  -1.1  -1.4  -0.9  -0.5
+    60    0.7   0.7   0.7  -0.2  -0.3   |  -1.1  -1.2  -0.8  -0.5
+    75    0.8   0.8   0.8  -0.2  -0.3   |  -1.1  -1.2  -0.8  -0.5
+
+A mano, dos aguas α = 22.5°, zona F θ = 0°: −0,9 + (22,5−15)/15·(−0,5+0,9) = -0.700 (función -0.700)
+A mano, un agua α = 15°, θ = 180°, zona F, A = 3.0 m²: c_pe = −2,8 − (−2,8 + 2,5)·log10(3) = -2.6569 (función -2.6569)
+En la cubierta a un agua de 15° la succión local pésima de la zona F es -2.8 con θ=180°: la dirección de viento importa y hay que comprobar ambas.
+```
+
+</details>
+
+#### Cp de sotavento de ASCE 7 interpolado con L/B y presiones de muro con cerramiento cerrado y parcialmente cerrado
+
+<details><summary>Salida real de <code>python examples/asce7_mwfrs_wall_cp_leeward_interpolation_with_l_over_b_and_net_pressures_enclosed_vs_partially_enclosed.py</code></summary>
+
+```text
+Cp de sotavento frente a L/B:
+    L/B   1.2.0  regla anterior  diferencia neta (0,8 − Cp)
+    0.5  -0.500           -0.50                       +0.0 %
+    1.0  -0.500           -0.50                       +0.0 %
+    1.2  -0.460           -0.30                      +14.5 %
+    1.5  -0.400           -0.30                       +9.1 %
+    2.0  -0.300           -0.30                       +0.0 %
+    2.5  -0.275           -0.20                       +7.5 %
+    3.0  -0.250           -0.20                       +5.0 %
+    4.0  -0.200           -0.20                       +0.0 %
+    6.0  -0.200           -0.20                       +0.0 %
+
+Presiones de muro con q = 1200 Pa, G = 0,85, L/B = 1,5:
+  enclosed            barlovento +0.600/+1.032 kPa, sotavento -0.624/-0.192 kPa, lateral -0.930/-0.498 kPa
+                      neta barlovento − sotavento: 1.224 (+GCpi) y 1.224 kPa (−GCpi) = q·G·(0,8 + 0,4)/1000 = 1.224 kPa
+  partially_enclosed  barlovento +0.156/+1.476 kPa, sotavento -1.068/+0.252 kPa, lateral -1.374/-0.054 kPa
+                      neta barlovento − sotavento: 1.224 (+GCpi) y 1.224 kPa (−GCpi) = q·G·(0,8 + 0,4)/1000 = 1.224 kPa
+La clasificación de cerramiento cambia la presión de cada muro (lo que dimensiona fachada y correas) pero no el cortante total del edificio.
+```
+
+</details>
+
+#### GCp de componentes y revestimientos de ASCE 7 frente al área eficaz y el mínimo de 16 psf
+
+<details><summary>Salida real de <code>python examples/asce7_components_and_cladding_gcp_walls_zones_4_5_roof_zones_1_2_3_effective_area_and_16_psf_minimum.py</code></summary>
+
+```text
+q_h = 1056.1 Pa; franja de esquina a = max(min(0,1·B, 0,4·h), max(0,04·B, 0,9 m)) = 3.00 m
+   A [m²]  GCp4+  GCp4−          p4 [Pa]  GCp5−  p5− [Pa]  GCp1−  GCp3−  p3− [Pa]
+    0.500   1.00  -1.10    1246/  -1352   -1.40     -1669  -1.70  -3.20     -3570
+    0.929   1.00  -1.10    1246/  -1352   -1.40     -1669  -1.70  -3.20     -3570
+    2.000   0.94  -1.04    1184/  -1290   -1.28     -1544  -1.58  -3.02     -3383
+    5.000   0.87  -0.97    1110/  -1216   -1.14     -1396  -1.44  -2.81     -3161
+   10.000   0.82  -0.92    1054/  -1159   -1.04     -1284  -1.34  -2.65     -2992
+   20.000   0.77  -0.86     998/  -1103   -0.93     -1172  -1.23  -2.49     -2824
+   46.450   0.70  -0.80     929/  -1035   -0.80     -1035  -1.10  -2.30     -2619
+  100.000   0.70  -0.80     929/  -1035   -0.80     -1035  -1.10  -2.30     -2619
+
+A mano, zona 5, A = 5 m²: fracción log = 0.4302; GCp = −1,4 + 0.4302·0,6 = -1.1419 (función -1.1419); p = q_h·(GCp − 0,18) = -1396 Pa
+Mínimo de 16 psf: con q_h = 600 Pa la zona 4 a 50 m² daría 600·(0,7 + 0,18) = 528 Pa → se eleva a 766 Pa.
+cc_pressure.get_cc_pressure (calcula q_h por su cuenta): (1109.9, -1396.0) Pa frente a (1109.9, -1396.0) Pa de components: iguales.
+Las presiones de cubierta usan la tabla θ ≤ 7° del paquete sin contrastar; las de muro, la Fig. 30.3-1. Para edificios de h > 60 ft (18,3 m) el paquete no tiene tablas de C&C.
+```
+
+</details>
+
+#### Informe de componentes y revestimientos de una nave con EN 1991-1-4 y ASCE 7
+
+<details><summary>Salida real de <code>python examples/components_and_cladding_report_warehouse_ec1_vs_asce7_both_internal_pressure_signs_and_unverified_sloped_roof_parapet_tables.py</code></summary>
+
+```text
+EN 1991-1-4: q_p(8 m) = 935 Pa; franja e/10 = 1.60 m
+   zona A [m²]   c_pe  w c_pi=+0,2  w c_pi=−0,3   pésima
+      A      1  -1.40        -1496        -1028    -1496
+      B      1  -1.10        -1215         -748    -1215
+      D      1   1.00          748         1215     1215
+      E      1  -0.50         -654         -187     -654
+      A     10  -1.20        -1309         -841    -1309
+      B     10  -0.80         -935         -467     -935
+      D     10   0.80          561         1028     1028
+      E     10  -0.50         -654         -187     -654
+      F      1  -2.50        -2524        -2056    -2524
+      G      1  -2.00        -2056        -1589    -2056
+      H      1  -1.20        -1309         -841    -1309
+  I_neg      1  -0.20         -374           94     -374
+      F     10  -1.80        -1869        -1402    -1869
+      G     10  -1.20        -1309         -841    -1309
+      H     10  -0.70         -841         -374     -841
+  I_neg     10  -0.20         -374           94     -374
+  Zona D a 1 m²: con c_pi = −0,3 la presión es 1.62 veces la del informe por defecto (c_pi = +0,2).
+
+ASCE 7: q_h(8 m) = 1008 Pa; franja a = 3.0 m
+  zona 4 (wall) A =    1 m²: GCp +0.99/-1.09 → p =  +1183 /  -1284 Pa
+  zona 5 (wall) A =    1 m²: GCp +0.99/-1.39 → p =  +1183 /  -1581 Pa
+  zona 4 (wall) A =   10 m²: GCp +0.82/-0.92 → p =  +1005 /  -1106 Pa
+  zona 5 (wall) A =   10 m²: GCp +0.82/-1.04 → p =  +1005 /  -1225 Pa
+  zona 1 (roof) A =    1 m²: GCp +0.30/-1.69 → p =   +766 /  -1883 Pa
+  zona 2 (roof) A =    1 m²: GCp +0.30/-2.29 → p =   +766 /  -2486 Pa
+  zona 3 (roof) A =    1 m²: GCp +0.30/-3.18 → p =   +766 /  -3389 Pa
+  zona 1 (roof) A =   10 m²: GCp +0.24/-1.34 → p =   +766 /  -1527 Pa
+  zona 2 (roof) A =   10 m²: GCp +0.24/-1.88 → p =   +766 /  -2070 Pa
+  zona 3 (roof) A =   10 m²: GCp +0.24/-2.65 → p =   +766 /  -2855 Pa
+
+Estimaciones con tablas sin contrastar (ASCE 7, A = 1 m²):
+  dos aguas 20°: 1 -1383, 2e -2185, 2n -1984, 2r -2385, 3 -2988 Pa
+  cúpula f/D = 0,2: A -766, B -1007, C -766 Pa
+  antepecho h_p = 1 m: K_p = 1.5 (aproximación propia), GCp −1,10 → -1.65
+```
+
+</details>
+
+#### Catálogo de Cp, techos complejos y seguidores solares: lo que tienen de indicativo
+
+<details><summary>Salida real de <code>python examples/indicative_cp_catalog_complex_roofs_and_solar_tracker_loads_declared_non_normative_with_missing_kz_check.py</code></summary>
+
+```text
+Catálogo: 13 entradas, geometrías box_LB1, box_LB4, cylinder, flat_roof, gable_20deg, open_truss
+  box_LB1   ASCE7   barlovento +0.80  sotavento -0.50  lateral -0.70  L/B=1.0
+  box_LB1   EN1991  barlovento +0.80  sotavento -0.50  lateral -0.80  
+  box_LB1   AS1170  barlovento +0.70  sotavento -0.50  lateral -0.65  
+  box_LB4   ASCE7   barlovento +0.80  sotavento -0.20  lateral -0.70  
+  box_LB4   EN1991  barlovento +0.80  sotavento -0.30  lateral -0.80  
+  cylinder  ASCE7   barlovento +0.80  sotavento -0.50  lateral -0.70  Re > 4e5
+  cylinder  EN1991  barlovento +1.00  sotavento -0.40  lateral -0.70  
+
+Techos complejos (el código no altera el resultado):
+  arco f/h = 0,2 [EU]: {'barlovento': 0.2, 'cumbrera': -0.8, 'sotavento': -0.4}
+  arco f/h = 0,2 [US]: {'barlovento': 0.2, 'cumbrera': -0.8, 'sotavento': -0.4}
+  diente de sierra: {'primera_pendiente': 0.3, 'primera_vertical': -1.0, 'intermedia_pendiente': -0.4, 'intermedia_vertical': -0.7, 'ultima_pendiente': -0.6}
+
+Seguidor solar (cuerda 2 m), V = 35 m/s:
+  inclinación    0°, altura 2 m: q_z =    638 Pa, sustentación  1.91 kN/m, momento  0.00 kN·m/m (stow_lift_max)
+  inclinación    0°, altura 5 m: q_z =    638 Pa, sustentación  1.91 kN/m, momento  0.00 kN·m/m (stow_lift_max)
+  inclinación   30°, altura 2 m: q_z =    638 Pa, sustentación  1.44 kN/m, momento  1.11 kN·m/m (operating_torsion_max)
+  inclinación   30°, altura 5 m: q_z =    638 Pa, sustentación  1.44 kN/m, momento  1.11 kN·m/m (operating_torsion_max)
+  inclinación   60°, altura 2 m: q_z =    638 Pa, sustentación  0.48 kN/m, momento  1.11 kN·m/m (operating_torsion_max)
+  inclinación   60°, altura 5 m: q_z =    638 Pa, sustentación  0.48 kN/m, momento  1.11 kN·m/m (operating_torsion_max)
+La altura no cambia q_z: falta K_z. En exposición C, K_z(2 m) = 0.849, así que la función sobrestima q_z un 18 % a ras de suelo; en exposición B (0.575) un 74 %. Usa coeficientes de ensayo del fabricante para dimensionar un seguidor.
+```
+
+</details>
+
+### 3. Fuerzas sobre el edificio (MWFRS)
+
+#### Edificio bajo con EN 1991-1-4: z_e = h, falta de correlación y comparación con la regla anterior a 1.2.0
+
+<details><summary>Salida real de <code>python examples/ec1_mwfrs_low_rise_story_forces_reference_height_and_lack_of_correlation_hand_check_vs_previous_rule.py</code></summary>
+
+```text
+Edificio b × d × h = 20 × 12 × 12 m, terreno II, v_b = 26.0 m/s; c_s·c_d = 1.0 (justified_low_rise_h_le_15m (EN 1991-1-4 §6.2(1) Nota 1a))
+q_p(12 m) a mano = 1043.28 Pa (paquete 1043.28 Pa)
+  planta  z_top   z_e   F [kN]   a mano  regla anterior
+       1    3.0  12.0    69.17    69.17           45.73
+       2    6.0  12.0    69.17    69.17           56.81
+       3    9.0  12.0    69.17    69.17           63.74
+       4   12.0  12.0    69.17    69.17           68.86
+Cortante basal: 276.68 kN (a mano 0,85·1,3·q_p(12)·20·12 = 276.68 kN); regla anterior 235.13 kN (-15.0 %).
+Momento de vuelco en la base: 1660.1 kN·m (fuerzas en el centro de cada planta).
+Con z_e = h la presión de barlovento es uniforme; la regla anterior la reducía en las plantas bajas (q_p(3 m) < q_p(12 m)), del lado inseguro en edificios anchos y bajos.
+```
+
+</details>
+
+#### Torre de 60 m: alturas de referencia por franjas, vuelco y estado de c_s·c_d
+
+<details><summary>Salida real de <code>python examples/ec1_mwfrs_tall_building_60_m_reference_height_strips_figure_7_4_story_forces_overturning_and_cscd_status.py</code></summary>
+
+```text
+h = 60 m, b = 20 m, d = 30 m (h/d = 2.0): c_pe,E = -0.550, f = 0.8875, q_p(h) = 1377 Pa
+  planta  z_top   z_e  q_p(z_e)   F [kN]
+       1      3    20       994    82.69
+       3      9    20       994    82.69
+       6     18    20       994    82.69
+       7     21    21      1010    83.37
+       8     24    24      1054    85.25
+      10     30    30      1130    88.46
+      13     39    39      1221    92.35
+      14     42    60      1377    99.01
+      20     60    60      1377    99.01
+Cortante basal 1806.6 kN (suma independiente 1806.6 kN); vuelco 56492 kN·m (independiente 56494 kN·m); brazo equivalente 31.3 m.
+Con q_p(h) en toda la altura (simplificación habitual) saldría 1980 kN, +10 % sobre el reparto por franjas.
+c_s·c_d = 1.0 → estado: unverified_default_h_gt_15m (requiere cálculo dinámico §6.3 o Anexo B/C) (justificado: False).
+```
+
+</details>
+
+#### ASCE 7 direccional: fuerzas por planta en B, C y D y la planta superior a mano
+
+<details><summary>Salida real de <code>python examples/asce7_mwfrs_directional_story_forces_exposures_b_c_d_and_hand_check_of_the_top_story_force.py</code></summary>
+
+```text
+h = 35.0 m, B = 30.0 m, L = 45.0 m (L/B = 1.5), V = 50.0 m/s, K_d = 0,85, G = 0,85
+  exp.  q_h [Pa]  V_b [kN]  OTM [kN·m]   Cp_l
+     B      1339      1259       23357  -0.40
+     C      1697      1647       30136  -0.40
+     D      1912      1885       34253  -0.40
+
+A mano, exposición C, planta 10 (z = 35 m = h): q_z = q_h = 1697.3 Pa;
+  p = q_z·0,85·0,8 + q_h·0,85·0,4 = 1731.3 Pa; F = p·B·3,5 = 181.78 kN (paquete 181.78 kN)
+  Planta 1 (z = 3,5 m → K_z con 4,57 m): F = 139.54 kN; el sotavento a q_h pesa 43 % de esa presión.
+La exposición D da 1.50 veces el cortante de la B en este edificio.
+Solo muros de barlovento y sotavento: la cubierta, el caso de torsión (Fig. 27.3-8, ver el ejemplo de los cuatro casos) y el factor de ráfaga flexible (Davenport) van aparte.
+```
+
+</details>
+
+#### Los cuatro casos de carga de la Fig. 27.3-8 con excentricidad del 15 %
+
+<details><summary>Salida real de <code>python examples/asce7_four_mwfrs_load_cases_figure_27_3_8_torsion_with_15_percent_eccentricity_and_envelope.py</code></summary>
+
+```text
+P_x = 1098 kN (B_x = 20 m, L/B = 1.50),  P_y = 1798 kN (B_y = 30 m, L/B = 0.67)
+   caso  P_x [kN]  P_y [kN]  M_T [kN·m]
+    1-X      1098         0           0
+    1-Y         0      1798           0
+    2-X       823         0        2470
+    2-Y         0      1349        6068
+      3       823      1349           0
+      4       618      1012        6409
+
+A mano: caso 2-X M_T = 0,75·1098·0,15·20 = 2470 kN·m; caso 4 M_T = 0,563·(1098·3.0 + 1798·4.5) = 6409 kN·m
+Envolvente: P_x máx = 1098 kN, P_y máx = 1798 kN, M_T máx = 6409 kN·m (caso 4).
+La envolvente de máximos por separado no es una combinación: cada caso se analiza con su P_x, P_y y M_T simultáneos y con los dos signos de la excentricidad.
+```
+
+</details>
+
+#### NSR-10 en Barranquilla y Bogotá: factor de importancia sobre q_z y letras de terreno
+
+<details><summary>Salida real de <code>python examples/nsr10_mwfrs_barranquilla_vs_bogota_importance_factor_on_qz_and_terrain_category_letters.py</code></summary>
+
+```text
+h = 24.0 m, B = 20.0 m, L = 30.0 m
+  caso                                        V [m/s]  q_h [Pa]  V_b [kN]  OTM [kN·m]
+  barranquilla terreno A (tabla de ciudad)       45.0      1450       658        8165
+  barranquilla terreno A (zona)                  36.0       928       421        5226
+  barranquilla terreno B (tabla de ciudad)       45.0      1270       567        7088
+  barranquilla terreno B (zona)                  36.0       813       363        4537
+  bogota terreno C (tabla de ciudad)             27.0       351       152        1924
+  bogota terreno C (zona)                        28.0       377       164        2069
+En Barranquilla la tabla de ciudad (45 m/s) da 1.56 veces el cortante de la región 5 (36 m/s).
+
+Factor de importancia con V = 27 m/s: q_h(I = 1,15)/q_h(I = 1) = 1.1500, q_h(0,87)/q_h(1) = 0.8700; V_b 204 → 235 kN.
+  Vb_design = √I·V = 28.954 m/s es una velocidad equivalente para reproducir q_z·I, no una velocidad de la norma; con la regla anterior (I·V) la relación habría sido 1,3225.
+Categorías extremas con V = 30 m/s: A (costa) q_h = 645 Pa, D (α = 5) q_h = 290 Pa (2.22 veces).
+```
+
+</details>
+
+#### Mismo edificio de 30 × 20 × 40 m con las tres normas
+
+<details><summary>Salida real de <code>python examples/three_codes_same_building_30x20x40_m_base_shear_overturning_moment_and_story_forces_en1991_asce7_nsr10.py</code></summary>
+
+```text
+Edificio 30 × 20 m, H = 40 m, 14 niveles de carga
+
+  norma                                    q(H) [Pa]  V_b [kN]  OTM [kN·m] brazo [m]
+  EN 1991-1-4 (v_b = 26 m/s, terreno II)        1395      1950       39276      20.1
+  ASCE 7 (V = 40 m/s, exposición C)             1117      1347       28115      20.9
+  NSR-10 B.6 (V = 36 m/s, categoría B)           905      1091       22773      20.9
+
+El mayor cortante (EN 1991-1-4) es 1.79 veces el menor (NSR-10 B.6).
+
+Fuerzas por planta [kN] (cuatro niveles superiores, de abajo arriba):
+  EN 1991-1-4 (v_b = 26 m/s, terreno II)   150.4, 150.4, 150.4, 50.1
+  ASCE 7 (V = 40 m/s, exposición C)        108.4, 109.6, 110.8, 37.0
+  NSR-10 B.6 (V = 36 m/s, categoría B)     87.8, 88.8, 89.7, 30.0
+
+EN 1991-1-4: c_s·c_d = 1.0 con estado «unverified_default_h_gt_15m (requiere cálculo dinámico §6.3 o Anexo B/C)»: con 40 m hay que justificarlo (§6.3); ASCE 7 y NSR-10 usan G = 0,85 de edificio rígido sin comprobar la frecuencia.
+```
+
+</details>
+
+### 4. Respuesta dinámica y aeroelasticidad
+
+#### Factor de ráfaga de una torre flexible para periodos de 1 a 6 s y lo que simplifica el módulo
+
+<details><summary>Salida real de <code>python examples/davenport_gust_factor_flexible_tower_periods_1_to_6_s_damping_background_resonant_and_declared_simplifications.py</code></summary>
+
+```text
+h = 150.0 m, I_z = 0.2, L_z = 180.0 m, V_z = 40.0 m/s
+  T [s]  n1 [Hz]      Q  R β=1%  G_f 1%  R β=2%  G_f 2%
+    1.0    1.000  0.731   0.553   0.925   0.391   0.863
+    2.0    0.500  0.731   0.953   1.095   0.674   0.966
+    3.0    0.333  0.731   1.293   1.252   0.914   1.065
+    4.0    0.250  0.731   1.590   1.392   1.125   1.157
+    5.0    0.200  0.731   1.853   1.515   1.310   1.239
+    6.0    0.167  0.731   2.087   1.624   1.476   1.312
+El amortiguamiento del 2 % reduce G_f a T = 6 s de 1.624 a 1.312 (-19.2 %); a T = 1 s la parte resonante pesa menos (-6.6 %).
+
+Término omitido, T = 4.0 s, planta 30 × 30 m: R_B = 0.607, R_L = 0.287, √(R_B·(0,53 + 0,47·R_L)) = 0.635: el R del módulo es 1.57 veces el de la forma completa.
+Q con (B + h) = 180 m sería 0.783 frente a 0.731 con (h + h): con B < h la parte de fondo queda del lado inseguro (-6.6 %).
+Es un cálculo de predimensionamiento: R del lado seguro, Q del lado inseguro si B < h. Para un edificio esbelto real hay que evaluar I_z, L_z y V_z con la tabla de la norma y usar la forma completa o un ensayo en túnel.
+```
+
+</details>
+
+#### Chimenea de acero: v_crit, Scruton, c_lat según Reynolds, K_w iterado y amplitud (E.7)
+
+<details><summary>Salida real de <code>python examples/vortex_shedding_steel_chimney_en1991_annex_e_critical_velocity_scruton_kw_clat_by_reynolds_and_amplitude_e7.py</code></summary>
+
+```text
+v_crit = b·n/St = 1.0·1.2/0.18 = 6.67 m/s; v_m(30 m) = 31.6 m/s; 1,25·v_m = 39.5 m/s
+  → hay que estudiarlo (E.1: v_crit > 1,25·v_m lo exime)
+Re = 4.44e+05 → c_lat,0 = 0.315 (zona de transición de la Figura E.2; el valor fijo del paquete es 0,2)
+Sc = 2·0.012·250.0/(1,25·1²) = 4.80;  K_w = 3·(6/30)·[1 − 6/30 + (6/30)²/3] = 0.4880 (≤ 0,6)
+y_F,max = b·(1/St²)(1/Sc)·K·K_w·c_lat = 128.6 mm (paquete 128.6 mm), y/b = 0.1286
+  Hipótesis L_j = 6·b válida si y/b < 0,1 (Tabla E.4): NO, hay que iterar.
+  Iteración con L_j/b = 4,8 + 12·y/b (Tabla E.4): converge en 5 pasos a L_j/b = 6.428, K_w = 0.5149, y_F,max = 135.7 mm.
+Con los valores por defecto (K_w = 0,6, c_lat = 0,2): y = 100.3 mm, -26 % respecto al cálculo con c_lat por Reynolds.
+Fuerza de inercia en la punta (E.6, Φ = 1): F_w = m·(2πn)²·y = 1929 N/m.
+Rango de enganche del paquete: 4.67-8.67 m/s (±30 % con Sc < 5; criterio propio, no de la norma).
+```
+
+</details>
+
+#### Galope de secciones de la Tabla E.7 y el criterio v_CG > 1,25·v_m
+
+<details><summary>Salida real de <code>python examples/galloping_onset_velocity_rectangular_and_iced_sections_table_e7_and_criterion_e19_1_25_vm.py</code></summary>
+
+```text
+b = 0.5 m, n₁ = 2.0 Hz, m = 150.0 kg/m, δ_s = 0.015 → Sc = 2·0.015·150.0/(1,25·0.5²) = 14.40; v_m = 22.0 m/s
+  sección (Tabla E.7)        a_G  v_CG [m/s]  v_CG/(1,25·v_m)  riesgo
+  rectángulo d/b = 1/2       0.7       41.14            1.496      no
+  hielo sobre cable          1.0       28.80            1.047      no
+  cuadrado d/b = 1           1.2       24.00            0.873      sí
+  rectángulo d/b = 1,5       1.7       16.94            0.616      sí
+  rectángulo d/b = 2         2.0       14.40            0.524      sí
+  desconocida (a_G = 10)    10.0        2.88            0.105      sí
+Secciones que no cumplen (E.19): cuadrado d/b = 1, rectángulo d/b = 1,5, rectángulo d/b = 2, desconocida (a_G = 10).
+Para el rectángulo d/b = 2 haría falta m ≥ 1,25·v_m·a_G·ρ·b²/(4·δ_s·n₁·b) = 286 kg/m (o el amortiguamiento equivalente) para cumplir.
+Interacción con torbellinos (E.20): cuadrado, v_crit = 8.33 m/s (St = 0,12), v_CG/v_crit = 2.88 → fuera del intervalo 0,7-1,5.
+```
+
+</details>
+
+#### Módulo `aeroelastic`: la trampa del signo de Den Hartog, enganche e interferencia
+
+<details><summary>Salida real de <code>python examples/aeroelastic_module_den_hartog_sign_convention_vs_en1991_ag_lock_in_range_and_wake_interference_factor.py</code></summary>
+
+```text
+Cuadrado, a_G = 1,2 (Tabla E.7), m = 150 kg/m, n = 2 Hz, b = 0,5 m, δ = 0,015:
+  vortex_shedding.check_galloping(aG=1.2)             v_CG = 24.00 m/s
+  aeroelastic.galloping_critical_velocity(+1.2)       v = inf (lo trata como estable)
+  aeroelastic.galloping_critical_velocity(H = −1.2)   v = 24.00 m/s
+  Con el signo de Den Hartog ambas funciones coinciden; con el a_G tal cual la función de aeroelastic concluye lo contrario.
+
+Rango de enganche (banda ±20 %, criterio del módulo): 5.33-8.00 m/s; U = 6,5 m/s dentro: True.
+
+Dos chimeneas de b = 1 m, n = 1,2 Hz, m = 250 kg/m, δ = 0,012 (Sc con E.4):
+    a/b  factor módulo  crítico  v_CIG (E.23) [m/s]
+    1.5          1.500     True                6.51
+    2.0          1.500     True                7.51
+    2.5          1.500     True                8.40
+    3.0          1.500    False         — (a/b ≥ 3)
+    5.0          1.441    False         — (a/b ≥ 3)
+   10.0          1.294    False         — (a/b ≥ 3)
+   20.0          1.000    False         — (a/b ≥ 3)
+El factor del módulo no es una magnitud de la norma: úsalo solo como alerta. Con a/b < 3 la referencia de EN 1991-1-4 es la velocidad crítica v_CIG de E.3, que el paquete no calcula.
+```
+
+</details>
+
+#### Números de Strouhal frente a la Tabla E.1, API antigua de torbellinos y divergencia (E.24)
+
+<details><summary>Salida real de <code>python examples/strouhal_numbers_by_section_vs_en1991_table_e1_legacy_vortex_api_and_divergence_velocity_e24.py</code></summary>
+
+```text
+b = 0.6 m, n = 1.5 Hz
+  sección               paquete  EN Tabla E.1  v_crit [m/s]
+  circular                 0.18          0.18          5.00
+  square                   0.12          0.12          7.50
+  rectangular              0.12             —          7.50
+  hexagonal                0.14             —          6.43
+  octagonal                0.15             —          6.00
+  H_section                0.10          0.11          9.00
+  L_section                0.15             —          6.00
+  API antigua ST_TABLE: circular 0.18, square_sharp 0.12, rectangular_2_1 0.06, octagonal 0.18
+  EN rectángulo d/b = 2: St = 0,06 → v_crit = 15.00 m/s (la mitad de St, el doble de v_crit)
+
+API antigua frente al criterio E.1.2(2), v_m = 20 m/s:
+  n = 1.5 Hz: v_crit =   5.00 m/s, «en banda» = False, E.1.2(2) obliga a estudiarlo = True, galope (a_G fijo) = True
+  n = 4.0 Hz: v_crit =  13.33 m/s, «en banda» = True , E.1.2(2) obliga a estudiarlo = True, galope (a_G fijo) = True
+  n = 8.0 Hz: v_crit =  26.67 m/s, «en banda» = False, E.1.2(2) obliga a estudiarlo = False, galope (a_G fijo) = False
+
+Divergencia (E.24): k_Θ = 40000 N·m/rad por metro, d = 3.0 m, dc_M/dΘ = 1.0 (dato supuesto):
+  v_div = √(2·k_Θ/(ρ·d²·dc_M/dΘ)) = 84.33 m/s (función 84.33 m/s). E.4.2 exige además b/d < 0,25 y frecuencias de torsión bajas para que el panel sea propenso; si lo es, hay que consultar a un especialista.
+```
+
+</details>
+
+### 5. Memorias, informes, servicios y API REST
+
+#### Memoria del MWFRS de ASCE 7 con handcalcs, a mano y sin handcalcs
+
+<details><summary>Salida real de <code>python examples/memo_asce7_mwfrs_handcalcs_latex_numbers_hand_check_and_fallback_without_handcalcs.py</code></summary>
+
+```text
+handcalcs disponible: True; LaTeX de 999 caracteres
+  K_z(z=12.0m, exp=C) = 1.040
+  q_z = 1147 N/m2 (1.147 kN/m2)
+  Cp barlovento = 0.80, Cp sotavento = -0.30
+  GCpi = +/-0.18
+  p_diseno (combo critico) = 0.986 kN/m2
+A mano: K_z = 1.0401, q_z = 1.1468 kN/m², p_diseño = q·(0,85·0,8 + 0,18) = 0.9862 kN/m² (memoria 0.9862)
+LaTeX guardado en memoria_asce7_mwfrs.tex (17 líneas); primera ecuación: q_{z} &= 0.613 \cdot K_{z} \cdot K_{zt} \cdot K_{d} \cdot K_{e} \cdot \frac{ \le
+
+Sin handcalcs: _HAS_HANDCALCS = False, LaTeX vacío = True, p_diseño = 0.9862 kN/m² (igual)
+```
+
+</details>
+
+#### Memorias de presión pico y de factor de ráfaga frente a los motores del paquete
+
+<details><summary>Salida real de <code>python examples/memo_ec1_peak_pressure_and_davenport_gust_factor_handcalcs_equal_to_the_canonical_engines.py</code></summary>
+
+```text
+q_b = ½·1,25·27² = 455.62 Pa
+  z =   10 m: c_e = 1.7092, memoria q_p =   778.75 Pa, TerrainProfile   778.75 Pa, LaTeX 238 caracteres
+  z =   20 m: c_e = 2.1821, memoria q_p =   994.22 Pa, TerrainProfile   994.22 Pa, LaTeX 238 caracteres
+  z =   40 m: c_e = 2.6996, memoria q_p =  1230.00 Pa, TerrainProfile  1230.00 Pa, LaTeX 239 caracteres
+  La memoria no calcula c_e: hay que dárselo (Figura 4.2 o TerrainProfile).
+
+Factor de ráfaga: memoria G_f = 1.25466, motor 1.25466 (coinciden); Q = 0.7489, R = 1.2754
+  f_1 = 1/T = 0.2857 Hz
+  Q (fondo) = 0.7489, R (resonante) = 1.2754
+  g_R = 3.8795 (g_Q = g_v = 3.4)
+  G_f = 1.2547
+```
+
+</details>
+
+#### Informe Markdown de EN 1991-1-4 en terreno llano y en la cresta de una loma
+
+<details><summary>Salida real de <code>python examples/report_ec1_markdown_with_orography_factor_from_annex_a3_and_zmin_of_the_terrain_category.py</code></summary>
+
+```text
+# Reporte EC1 - Acciones de Viento (EN 1991-1-4)
+
+## 1. Velocidad basica
+- v_b,0 = 26.0 m/s
+- v_b = c_dir * c_season * v_b,0 = 26.0 m/s
+
+## 2. Categoria de terreno y orografia
+- Categoria 2, z0 = 0.05 m, z_min = 2.0 m
+- c_o = 1.000 (LIMITACIÓN: Terreno plano sin efecto orográfico según EN 1991-1-4 §4.3.3. En colinas/acantilados usar windloads.topography.ec1_orography_factor_A3)
+
+## 3. Velocidad media a z=H
+- k_r = 0.1900
+- c_r(z) = 0.9389
+- v_m(z) = 24.41 m/s
+
+## 4. Presion de calculo de la velocidad punta
+- q_p(z) = 900.06 Pa = 0.900 kPa
+
+## 5. Coeficientes de presion externa (EC1 §7.2)
+- Estructura: edificio rectangular
+- Tablas A/B/D/E segun forma. Aplicar cp_ext * q_p para presiones netas.
+
+## 6. Combinaciones
+- W_d = gamma_Q * q_p * c_pe * A
+
+Comprobación: TerrainProfile q_p(7 m) = 900.06 Pa (informe 900.06 Pa); con la regla anterior (z = 10 m) habría dado 993.84 Pa (+10 %).
+En la cresta de la loma c_o = 1.3644 (Anexo A.3) → q_p = 1413.15 Pa, 1.57 veces el terreno llano.
+Línea de orografía del informe con c_o: - c_o = 1.3644 (EN 1991-1-4 §4.3.3 / Anexo A.3)
+Ficheros: reporte_ec1_llano.md y reporte_ec1_loma.md en examples/out/.
+```
+
+</details>
+
+#### Capa de servicios: cada resultado recalculado con el motor y unidades imperiales de ASCE 7
+
+<details><summary>Salida real de <code>python examples/services_layer_ec1_asce7_nsr10_components_delegate_to_the_engines_cross_check_and_units.py</code></summary>
+
+```text
+EC1: q_p(24 m) = 1.2405 kPa (motor 1.2405), v_m = 30.50 m/s, c_pe D/E = 0.8/-0.550 (h/d = 2), neta 1.6747 kPa
+ASCE 7: q_h = 31.79 psf (TerrainProfile en SI → 31.78 psf), L/B = 1,5 → Cp_l = -0.40, neta = 32.43 psf = q_h·0,85·1.20 (32.43)
+        barlovento máx. 27.34 psf (con −GCpi), succión de sotavento máx. -16.53 psf (con +GCpi)
+NSR-10 Cali: V = 97.2 km/h, q_h = 0.5510 kPa (NSR10WindLoad 0.5510, incluye I = 1,15), neta 0.6089 kPa = q_h·0,85·1,3
+C&C zona 4, A =  0.5 m²: GCp− = -1.100 (asce7_GCp -1.100), p− = -1.320 kPa; Presiones exteriores q_h·GCp; falta restar/sumar q_h·GCpi.
+C&C zona 5, A =  5.0 m²: GCp− = -1.142 (asce7_GCp -1.142), p− = -1.370 kPa; Presiones exteriores q_h·GCp; falta restar/sumar q_h·GCpi.
+C&C zona 3, A = 20.0 m²: GCp− = -2.494 (asce7_GCp -2.494), p− = -2.993 kPa; roof_type='gable': se usa la tabla θ <= 7° (sin contrastar).
+```
+
+</details>
+
+#### API REST sin servidor: todos los endpoints y los 400 por entrada inválida
+
+<details><summary>Salida real de <code>python examples/rest_api_testclient_ec1_asce7_nsr10_cc_export_openfoam_version_and_400_on_invalid_input.py</code></summary>
+
+```text
+Versión de la API: 1.2.0 (windloads.__version__ = 1.2.0)
+GET / → ['/api/wind/ec1', '/api/wind/asce7', '/api/wind/nsr10', '/api/wind/components/cc', '/api/export', '/api/wind/openfoam-pre']
+POST /api/wind/ec1 → 200: q_p = 0.9219 kPa, v_m = 23.52 m/s, neta 1.2139 kPa
+POST /api/wind/asce7 → 200: q_h = 24.58 psf, neta 22.98 psf
+POST /api/wind/nsr10 → 200: V = 97.2 km/h, q_z = 0.5854 kPa
+POST /api/wind/components/cc → 200: GCp 0.941/-1.282
+POST /api/export (csv) → 200:
+    story,z_m,pressure_kPa
+    1,3.00,0.9000
+    2,6.00,1.0000
+    3,9.00,1.1000
+POST /api/wind/openfoam-pre → 200: blockMeshDict, controlDict, snappyHexMeshDict, building_obj
+
+Entradas inválidas:
+  /api/wind/ec1              → 400: "terrain_category debe ser 0..4, recibido 7"
+  /api/wind/asce7            → 400: "exposure debe ser B, C o D, recibido 'Z'"
+  /api/wind/components/cc    → 400: "zone debe ser 1-5, recibido 9"
+  /api/export                → 400: "pressures_per_story es obligatorio (kPa por planta, de abajo arriba); el servicio no inventa presio
+  /api/wind/openfoam-pre     → 400: "El edificio es más alto que la altura del túnel de viento."
+```
+
+</details>
+
+### 6. Exportación e integraciones
+
+#### Fuerzas por planta a JSON, CSV, .s2k y .e2k con reparto a nudos por área tributaria
+
+<details><summary>Salida real de <code>python examples/export_story_forces_json_csv_sap2000_s2k_etabs_e2k_with_joint_map_tributary_areas_and_equivalent_pressure.py</code></summary>
+
+```text
+V_b = 1949.7 kN; patrón WX+: suma 1949.70 kN
+Planta 1: F = 144.82 kN → presión equivalente 1609.1 Pa = F·1000/(30·3) (1609.1); q_p(z_e) = 1307.11 Pa
+.s2k planta 1: [24.1367, 48.2733, 48.2733, 24.1367] kN, suma 144.8200 = F de planta 144.82; pesos C1 0.167, E1 0.333, E2 0.333, C2 0.167
+Total de cargas en nudos del .s2k: 1949.70 kN (56 líneas)
+Fragmentos:
+  Joint=C1   LoadPat=WX+   CoordSys=GLOBAL   F1=24.1367   F3=0   M1=0   M2=0   M3=0
+  STORYLOAD "Story1"  LOADPAT "WX+"  TYPE  "POINT"  POINT "C1"  DIR "FX"  VALUE 24.1367
+Vuelco: patrón (cota superior) 42149.9 kN·m, cálculo (centro de planta) 39275.5 kN·m; diferencia 2874.4 = Σ F·h/2 = 2874.4 kN·m
+JSON: 14 niveles; ficheros .json, .csv, .s2k y .e2k en examples/out/
+```
+
+</details>
+
+#### Modelo canónico: presión de viento a carga lineal en los pilares de un pórtico
+
+<details><summary>Salida real de <code>python examples/canonical_model_sap_bridge_wind_pressure_to_frame_line_loads_pa_to_kn_per_m_portal_frame.py</code></summary>
+
+```text
+q_p(7 m) = 900.1 Pa; c_pe,D = 0.70, c_pe,E = -0.30 → p = 630.0 / -270.0 Pa
+Barlovento: patrón W_X (Wind), w = 3.780 kN/m = 630.0/1000·6.0
+Modelo: 1 patrón(es) ['W_X'], 2 cargas de barra:
+  COL_W  w = +3.780 kN/m  GlobalX  (W_X)
+  COL_L  w = +1.620 kN/m  GlobalX  (W_X)
+Empuje horizontal total = Σ w·H = 37.80 kN; a mano (p_D − p_E)·6·7/1000 = 37.80 kN
+El modelo base no cambia (inmutable): 0 cargas. Falta la cubierta (zonas F-I) y c_s·c_d.
+```
+
+</details>
+
+#### Puentes hacia SAP2000 con un cliente grabador y la hipótesis de unidades
+
+<details><summary>Salida real de <code>python examples/fastsap_bridge_recorder_client_joint_loads_kn_to_n_and_present_units_assumption_without_sap2000.py</code></summary>
+
+```text
+Cargas de nudo [kN]: 5=3.825, 6=7.650, 7=7.650, 8=3.825; suma 22.950 = 0,85·27 = 22.950
+apply_wind_loads_to_sap: aplicadas 3, fallidas {'8': 'SetLoadForce devolvio 1'}; Aplicadas 3/4 cargas, sumF = (19.1, 0.0) kN
+  llamada grabada: ('LoadPatterns.Add', 'W_X_EC1', 8)
+  llamada grabada: ('SetLoadForce', '5', 'W_X_EC1', (3825.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+  llamada grabada: ('SetLoadForce', '6', 'W_X_EC1', (7650.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+Fuerza enviada al nudo 5: 3825.0 (= 3.825 kN × 1000): correcto solo con el modelo en N.
+
+Exportador en seco: {'patterns': ['WX+', 'WY+'], 'n_patterns': 2, 'n_loads': 3, 'dry_run': True}
+Exportador con cliente: aplicadas 3, fallidas {}; patrones creados ['WX+', 'WY+'] con tipo 8 (OTHER)
+```
+
+</details>
+
+#### Plano DXF de cargas por cara y comprobación del sentido de las flechas
+
+<details><summary>Salida real de <code>python examples/dxf_wind_plan_pressure_and_suction_arrows_by_face_from_ec1_coefficients_entity_counts_and_arrow_check.py</code></summary>
+
+```text
+q_p(12 m) = 0.833 kN/m²; h/d = 0.30: c_pe D = 0.71, E = -0.31, A = -1.20
+  windward   c_pe = +0.71  p = q_p·c_pe = +0.589 kN/m²
+  leeward    c_pe = -0.31  p = q_p·c_pe = -0.261 kN/m²
+  side_left  c_pe = -1.20  p = q_p·c_pe = -1.000 kN/m²
+  side_right c_pe = -1.20  p = q_p·c_pe = -1.000 kN/m²
+DXF plano_viento_nave_40x16.dxf: LINE@W-PRESS ×3, LINE@W-SUCT ×9, LWPOLYLINE@W-LEGEND ×1, LWPOLYLINE@W-OUTLINE ×1, LWPOLYLINE@W-TITLE ×1, TEXT@W-TEXT ×10
+Barlovento (x = 0): flecha de (-10.0, 8.0) a (0.0, 8.0) → apunta hacia el edificio (presión)
+Sotavento (x = 40): flecha de (40.0, 8.0) a (50.0, 8.0) → sale del edificio (succión)
+El plano es esquemático: una flecha por cara con el c_pe dado, sin las zonas A/B/C a lo largo de las laterales ni las de cubierta; solo reconoce las caras windward/leeward/side_left/side_right de la caja envolvente (otra etiqueta se dibuja en el centro de la planta).
+```
+
+</details>
+
+#### Preprocesador de OpenFOAM: diccionarios, OBJ, bloqueo y lo que falta para correr
+
+<details><summary>Salida real de <code>python examples/openfoam_cfd_preprocessor_wind_tunnel_dictionaries_obj_geometry_blockage_ratio_and_missing_case_files.py</code></summary>
+
+```text
+### Resumen del Túnel de Viento CFD (OpenFOAM)
+- **Dominio Virtual**: 300.0m (L) x 160.0m (W) x 72.0m (H).
+- **Malla Bounding Box**: 129600 celdas en blockMesh (100x54x24).
+- **Obstáculo (Edificio)**: 16.0m (L) x 40.0m (W) x 12.0m (H).
+- **Ubicación**: (80.0, 80.0).
+- **Solver**: `simpleFoam` corriendo por `2000` pasos/segundos.
+
+Ficheros escritos: ['constant/triSurface/building.obj', 'system/blockMeshDict', 'system/controlDict', 'system/snappyHexMeshDict']
+Bloqueo = área frontal/sección del túnel = 40·12/(160·72) = 4.2 %
+Distancias: barlovento 72 m = 6.0·H, sotavento 212 m = 17.7·H, techo 60 m = 5.0·H
+Celda de fondo 3.0 m: el edificio de 12 m tiene 4.0 celdas de altura antes de refinar.
+locationInMesh (1 1 1) queda fuera del edificio.
+Faltan para ejecutar: 0/U, 0/p, 0/k, 0/epsilon o 0/omega, constant/transportProperties, constant/momentumTransport, system/fvSchemes, system/fvSolution, system/surfaceFeaturesDict.
+```
+
+</details>
+
+## Verificación
+
+- Cascada de EN 1991-1-4 en terreno II, z = 10 m, v_b = 26 m/s: c_r = 1,00668, I_v = 0,18874, q_p = 993,84 Pa, c_e = 2,352, derivados a mano (`test_golden_ec1_qp_cascade.py`).
+- Fichas del máster (`test_golden_fichas_en1991_1_4.py`): CTE DB SE-AE W00483 (q_b por zonas, q_p = 778,75 Pa en terreno III a 10 m, presiones netas de las zonas A-E con c_pi +0,2/−0,3), c_pi de la ficha W00249 e IAP-11 de la W01375. El golden de la zona A fijaba −1,0 y se corrigió a −1,2 (Tabla 7.1).
+- Correcciones de la 1.2.0, cada una con su oráculo (`test_fixes_1_2_0.py`): Tabla 7.1 y factor de correlación, alturas de referencia de la Figura 7.4, cortante basal de EN 1991-1-4 recalculado con la fórmula escrita aparte (276,68 kN en 20 × 12 × 12 m; torre de 60 m por franjas), Cp de sotavento de ASCE 7 interpolado, memoria sin handcalcs, Expresiones (A.4)-(A.13) del Anexo A.3 reescritas en el test, K_zt con los parámetros de la Fig. 26.8-1, K = 0,13, St = 0,18 y c_lat de Anexo E, Tablas 7.3a/7.4a/7.4b, z_min del informe, presión equivalente de la exportación, sentido de las flechas del DXF, I sobre q_z en NSR-10, servicios frente a los motores y versión única.
+- Conversión Pa → kN/m del puente al modelo canónico (`test_wind_bridge_units.py`), puentes SAP2000 con clientes simulados (`test_fastsap_bridge.py`, `test_fastsap_load_patterns.py`) e invariantes con hypothesis (q_p > 0 y creciente con z, q_z creciente con V, zona 3 más desfavorable que la 1, Barranquilla por encima de Bogotá; `test_property_invariants.py`).
+- `tests/test_examples.py` ejecuta los 33 ejemplos como subprocesos en ubuntu y windows × Python 3.11-3.13.
+
+## Limitaciones
+
+- EN 1991-1-4: c_s·c_d no se calcula (vale 1 y el resultado lo marca `unverified_default` por encima de 15 m); `EC1WindLoad` no incorpora el c_o de orografía (hay que calcularlo con `topography` y aplicarlo aparte, como en el informe); edificios con abertura dominante no implementados (se rechazan); el informe de componentes usa un solo c_pi (hay que pasar +0,2 y −0,3); las cubiertas a dos aguas no cubren pendientes negativas ni la regla de cubierta plana entre −5° y 5°, y la de un agua no tiene la Tabla 7.3b (θ = 90°). Solo valores recomendados: ningún anejo nacional.
+- ASCE 7: K_z con las constantes de ASCE 7-16 (ASCE 7-22 ajustó el perfil); G = 0,85 de edificio rígido sin comprobar la frecuencia; la cubierta del MWFRS no se calcula (`asce7_Cp_roof_flat` es una simplificación sin contrastar); los cuatro casos de torsión usan la excentricidad 0,15·B de edificio rígido (ASCE da otra para edificios flexibles); las tablas de componentes y revestimientos de cubierta (zonas 1-3, dos aguas, un agua, cúpula, mansarda) no están contrastadas y las de muro (zonas 4 y 5) tampoco se han vuelto a contrastar en esta revisión; el ajuste de antepecho es propio.
+- NSR-10: las categorías de terreno A-D de `NSR10WindLoad` no son las letras de la norma (A ≈ D, B ≈ C, C ≈ B de ASCE 7-05; D sin pareja); las tres tablas de velocidades por ciudad no coinciden entre sí ni con la Figura B.6.4-1 (cuatro ciudades del Caribe por encima de los 36 m/s de la región 5); zonas 2 y 4 y factores de importancia sin contrastar.
+- NCh 432, AS 1170.2 y SS EN: constantes y tablas de `nch432` y `codes_multi` sin contrastar (el K_z de NCh 432 sale 11-37 % por debajo del de ASCE 7-05). La tabla «ASCE» de periodos de retorno da 0,90 en T = 50 años.
+- Dinámica: el factor de ráfaga de Davenport usa (h + h) en Q y omite R_B·(0,53 + 0,47·R_L) en R; I_z, L_z y V_z son entradas. En torbellinos, c_lat no se obtiene del número de Reynolds ni se aplica la Tabla E.3, y la banda de enganche es un criterio propio. `aeroelastic.galloping_critical_velocity` usa el signo de Den Hartog (no el a_G de la Tabla E.7), `flutter_2dof` no es válido y el factor de interferencia de estela es propio.
+- Exportación e integraciones: los fragmentos .s2k/.e2k no se han importado en SAP2000 ni ETABS; los puentes hacia SAP2000 multiplican por 1000 suponiendo el modelo en N (la API usa las unidades actuales del modelo); el preprocesador de OpenFOAM no genera un caso ejecutable; el plano DXF es esquemático (una flecha por cara).
+- `cp_catalog`, `cp_techos_complejos` y `solar_trackers` son de orden de magnitud: sin referencia normativa, y el seguidor solar no aplica K_z.
+
+## Normas y referencias
+
+- EN 1991-1-4:2005+A1:2010, *Eurocode 1: Actions on structures — Part 1-4: General actions — Wind actions*: §4.2 (c_prob), §4.3-4.5 y Tabla 4.1, §5.3, §7.2.2 (Tabla 7.1, Figuras 7.4 y 7.5), §7.2.3-7.2.5 (Tablas 7.2, 7.3a, 7.4a y 7.4b), §7.2.9 (c_pi), Anexo A.3 (Expresiones A.1-A.13, Tabla A.2), Anexo E (Tablas E.1, E.2, E.5 y E.7; Expresiones E.1, E.2, E.4, E.6, E.7, E.18, E.19, E.23 y E.24).
+- ASCE/SEI 7-10 §26.8 y Fig. 26.8-1 (factor topográfico); ASCE/SEI 7-16 Fig. 27.3-1 (Cp de muros del MWFRS), §30.3 (franja de esquina a) y §27.3.5 / Fig. 27.3-8 (cuatro casos de carga con excentricidad ±0,15·B en edificios rígidos; los porcentajes 75 % y 56,3 % del módulo no se han contrastado con el texto).
+- SEAOG, «ASCE 7-22 wind changes» (2025), sobre el ajuste del perfil de K_z.
+- O. D. Arroyo Amell y L. Ramos Castillo, «Necesidad de revisión de cargas y factores parciales de la NSR-10 para el diseño de estructuras sometidas a acciones de viento», *Ingeniería y Ciencia* 11(21):177-195 (2015), doi:10.17230/ingciencia.11.21.9 (regiones de velocidad de la NSR-10 y adopción de ASCE 7-05).
+- CTE DB SE-AE (ficha W00483 de los tests dorados).
 
 ## Licencia
 
@@ -74,4 +946,4 @@ MIT. Consulta [LICENSE](LICENSE).
 
 ---
 
-Parte del toolkit estructural de código abierto **Loadpath**, de [Jesús Murgas](https://github.com/jmurgass99).
+Parte de **Loadpath**, la colección de librerías estructurales de código abierto de [Jesús Murgas](https://github.com/jmurgass99).

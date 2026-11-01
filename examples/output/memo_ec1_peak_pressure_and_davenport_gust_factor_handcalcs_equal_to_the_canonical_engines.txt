@@ -1,0 +1,11 @@
+q_b = ½·1,25·27² = 455.62 Pa
+  z =   10 m: c_e = 1.7092, memoria q_p =   778.75 Pa, TerrainProfile   778.75 Pa, LaTeX 238 caracteres
+  z =   20 m: c_e = 2.1821, memoria q_p =   994.22 Pa, TerrainProfile   994.22 Pa, LaTeX 238 caracteres
+  z =   40 m: c_e = 2.6996, memoria q_p =  1230.00 Pa, TerrainProfile  1230.00 Pa, LaTeX 239 caracteres
+  La memoria no calcula c_e: hay que dárselo (Figura 4.2 o TerrainProfile).
+
+Factor de ráfaga: memoria G_f = 1.25466, motor 1.25466 (coinciden); Q = 0.7489, R = 1.2754
+  f_1 = 1/T = 0.2857 Hz
+  Q (fondo) = 0.7489, R (resonante) = 1.2754
+  g_R = 3.8795 (g_Q = g_v = 3.4)
+  G_f = 1.2547

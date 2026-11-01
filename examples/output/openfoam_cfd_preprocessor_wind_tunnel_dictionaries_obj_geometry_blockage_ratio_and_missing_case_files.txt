@@ -1,0 +1,13 @@
+### Resumen del Túnel de Viento CFD (OpenFOAM)
+- **Dominio Virtual**: 300.0m (L) x 160.0m (W) x 72.0m (H).
+- **Malla Bounding Box**: 129600 celdas en blockMesh (100x54x24).
+- **Obstáculo (Edificio)**: 16.0m (L) x 40.0m (W) x 12.0m (H).
+- **Ubicación**: (80.0, 80.0).
+- **Solver**: `simpleFoam` corriendo por `2000` pasos/segundos.
+
+Ficheros escritos: ['constant/triSurface/building.obj', 'system/blockMeshDict', 'system/controlDict', 'system/snappyHexMeshDict']
+Bloqueo = área frontal/sección del túnel = 40·12/(160·72) = 4.2 %
+Distancias: barlovento 72 m = 6.0·H, sotavento 212 m = 17.7·H, techo 60 m = 5.0·H
+Celda de fondo 3.0 m: el edificio de 12 m tiene 4.0 celdas de altura antes de refinar.
+locationInMesh (1 1 1) queda fuera del edificio.
+Faltan para ejecutar: 0/U, 0/p, 0/k, 0/epsilon o 0/omega, constant/transportProperties, constant/momentumTransport, system/fvSchemes, system/fvSolution, system/surfaceFeaturesDict.

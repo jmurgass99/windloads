@@ -1,0 +1,13 @@
+V_50 = 26.0 m/s
+  T [años]  EN c_prob   V EN  ASCE f  V ASCE   AS f   V AS
+        10     0.9025  23.46   0.760   19.76  0.747  19.43
+        25     0.9597  24.95   0.840   21.84  0.898  23.36
+        50     1.0000  26.00   0.900   23.40  1.000  26.00
+       100     1.0385  27.00   0.950   24.70  1.094  28.44
+       300     1.0965  28.51   1.030   26.78  1.230  31.99
+       700     1.1391  29.62   1.070   27.82  1.328  34.52
+      1700     1.1820  30.73   1.130   29.38  1.424  37.02
+
+A mano, EN T = 100 años: c_prob = √[(1 − 0,2·ln(−ln 0,99))/(1 − 0,2·ln(−ln 0,98))] = 1.03848 (función 1.03848); la presión crece con c_prob² = 1.0784.
+Tabla «ASCE»: factor en T = 50 años = 0.90, no 1: con V_50 = 26.0 m/s devuelve V(50) = 23.4 m/s (-10 %). Incoherente con su propia definición de entrada.
+Inversa (bisección, EN): V = 28 m/s corresponde a T ≈ 206 años con V_50 = 26.0 m/s.

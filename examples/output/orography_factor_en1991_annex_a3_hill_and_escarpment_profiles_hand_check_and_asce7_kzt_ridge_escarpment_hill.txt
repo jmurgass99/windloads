@@ -1,0 +1,32 @@
+EN 1991-1-4 A.3: H = 40.0 m, L_u = L_d = 200.0 m, Φ = 0.2, L_e = 200.0 m, z = 10.0 m
+   x [m]    x/L  c_o colina  c_o escarpe
+    -300  -1.50      1.0075       1.0075
+    -200  -1.00      1.0275       1.0275
+    -100  -0.50      1.1008       1.1008
+     -50  -0.25      1.1927       1.1927
+       0   0.00      1.3685       1.3685
+      20   0.10      1.3105       1.3424
+      50   0.25      1.2401       1.2646
+     100   0.50      1.1565       1.2040
+     200   1.00      1.0664       1.1420
+     400   2.00      1.0120       1.0785
+     700   3.50      1.0000       1.0262
+
+A mano, colina a sotavento x = 100 m (X/L_d = 0,5; z/L_e = 0,05):
+  (A.12) A = 0.92125; (A.13) B = -1.71340; s = A·e^(B·0,5) = 0.39113; c_o = 1 + 2·s·0,2 = 1.15645 (función 1.15645)
+A mano, escarpe a sotavento x = 50 m (X/L_e = 0,25; z/L_e = 0,05 → 0,1 en A.8-A.10):
+  A = -0.0202, B = -0.5213, C = 0.3550; s = A·log²(0,25) + B·log(0,25) + C = 0.66153; c_o = 1.26461 (función 1.26461)
+En la cresta c_o = 1.369: la presión pico crece del orden de c_o² = 1.87 veces (más exactamente q_p ∝ c_o·(c_o + 7·I_v), porque I_v se divide por c_o).
+
+ASCE 7 Fig. 26.8-1, H = 30 m, L_h = 100 m, exposición C, z = 10 m:
+   x [m]  cresta 2-D  escarpe 2-D  colina 3-D
+    -150       1.000        1.000       1.000
+    -100       1.226        1.137       1.146
+     -50       1.476        1.282       1.301
+       0       1.748        1.437       1.467
+      50       1.476        1.378       1.301
+     100       1.226        1.320       1.146
+     200       1.000        1.208       1.000
+     300       1.000        1.102       1.000
+  A mano en la cresta 2-D: K1 = 1,45·0,3 = 0,435; K3 = e^(−3·0,1) = 0.7408; K_zt = (1 + 0,435·0.7408)² = 1.7484
+  A 200 m a sotavento el escarpe conserva K_zt = 1.208 (μ = 4) mientras la cresta y la colina ya valen 1,000 (μ = 1,5).

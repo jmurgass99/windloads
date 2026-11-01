@@ -1,0 +1,10 @@
+v_crit = b·n/St = 1.0·1.2/0.18 = 6.67 m/s; v_m(30 m) = 31.6 m/s; 1,25·v_m = 39.5 m/s
+  → hay que estudiarlo (E.1: v_crit > 1,25·v_m lo exime)
+Re = 4.44e+05 → c_lat,0 = 0.315 (zona de transición de la Figura E.2; el valor fijo del paquete es 0,2)
+Sc = 2·0.012·250.0/(1,25·1²) = 4.80;  K_w = 3·(6/30)·[1 − 6/30 + (6/30)²/3] = 0.4880 (≤ 0,6)
+y_F,max = b·(1/St²)(1/Sc)·K·K_w·c_lat = 128.6 mm (paquete 128.6 mm), y/b = 0.1286
+  Hipótesis L_j = 6·b válida si y/b < 0,1 (Tabla E.4): NO, hay que iterar.
+  Iteración con L_j/b = 4,8 + 12·y/b (Tabla E.4): converge en 5 pasos a L_j/b = 6.428, K_w = 0.5149, y_F,max = 135.7 mm.
+Con los valores por defecto (K_w = 0,6, c_lat = 0,2): y = 100.3 mm, -26 % respecto al cálculo con c_lat por Reynolds.
+Fuerza de inercia en la punta (E.6, Φ = 1): F_w = m·(2πn)²·y = 1929 N/m.
+Rango de enganche del paquete: 4.67-8.67 m/s (±30 % con Sc < 5; criterio propio, no de la norma).

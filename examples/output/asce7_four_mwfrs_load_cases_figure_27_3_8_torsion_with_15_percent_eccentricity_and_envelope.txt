@@ -1,0 +1,12 @@
+P_x = 1098 kN (B_x = 20 m, L/B = 1.50),  P_y = 1798 kN (B_y = 30 m, L/B = 0.67)
+   caso  P_x [kN]  P_y [kN]  M_T [kN·m]
+    1-X      1098         0           0
+    1-Y         0      1798           0
+    2-X       823         0        2470
+    2-Y         0      1349        6068
+      3       823      1349           0
+      4       618      1012        6409
+
+A mano: caso 2-X M_T = 0,75·1098·0,15·20 = 2470 kN·m; caso 4 M_T = 0,563·(1098·3.0 + 1798·4.5) = 6409 kN·m
+Envolvente: P_x máx = 1098 kN, P_y máx = 1798 kN, M_T máx = 6409 kN·m (caso 4).
+La envolvente de máximos por separado no es una combinación: cada caso se analiza con su P_x, P_y y M_T simultáneos y con los dos signos de la excentricidad.

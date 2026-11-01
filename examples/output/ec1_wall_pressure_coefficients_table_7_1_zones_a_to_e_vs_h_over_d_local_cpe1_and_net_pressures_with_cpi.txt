@@ -1,0 +1,29 @@
+Tabla 7.1 interpolada (c_pe,10) y factor de falta de correlación §7.2.2(3):
+    h/d      A      B      C      D      E    D−E      f
+   0.10  -1.20  -0.80  -0.50   0.70  -0.30   1.00  0.850
+   0.25  -1.20  -0.80  -0.50   0.70  -0.30   1.00  0.850
+   0.50  -1.20  -0.80  -0.50   0.73  -0.37   1.10  0.850
+   1.00  -1.20  -0.80  -0.50   0.80  -0.50   1.30  0.850
+   2.00  -1.20  -0.80  -0.50   0.80  -0.55   1.35  0.887
+   3.00  -1.20  -0.80  -0.50   0.80  -0.60   1.40  0.925
+   5.00  -1.20  -0.80  -0.50   0.80  -0.70   1.50  1.000
+   8.00  -1.20  -0.80  -0.50   0.80  -0.70   1.50  1.000
+
+Nave W00483: h = 10.0 m, d = 40.0 m, b = 40.0 m, terreno III, v_b = 27 m/s → q_p(10) = 778.75 Pa
+  e = min(b, 2h) = 20 m: zona A = e/5 = 4 m, B hasta e = 20 m, C el resto (20 m)
+  zona  c_pe,10  w c_pi=+0,2  w c_pi=−0,3  pésima [kPa]
+     A    -1.20       -1.090       -0.701        -1.090
+     B    -0.80       -0.779       -0.389        -0.779
+     C    -0.50       -0.545       -0.156        -0.545
+     D     0.70        0.389        0.779         0.779
+     E    -0.30       -0.389        0.000        -0.389
+  A mano zona A: q_p·(−1,2 − 0,2) = -1.090 kPa (fila A: -1.090). Hasta 1.2.0 la zona A usaba −1,0 y salía -0.934 kPa.
+
+c_pe local de la zona A según el área cargada (Figura 7.2):
+  A =  0.5 m²: c_pe = -1.400
+  A =  1.0 m²: c_pe = -1.400
+  A =  2.0 m²: c_pe = -1.340
+  A =  5.0 m²: c_pe = -1.260
+  A = 10.0 m²: c_pe = -1.200
+  A = 20.0 m²: c_pe = -1.200
+Para elementos de más de 10 m² vale c_pe,10; por debajo de 1 m², c_pe,1. Los muros con abertura dominante (c_pi = 0,75 o 0,90·c_pe de esa cara, §7.2.9(3)) no están implementados: EC1WindLoad los rechaza.

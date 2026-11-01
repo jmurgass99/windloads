@@ -1,0 +1,15 @@
+q_h = 1056.1 Pa; franja de esquina a = max(min(0,1·B, 0,4·h), max(0,04·B, 0,9 m)) = 3.00 m
+   A [m²]  GCp4+  GCp4−          p4 [Pa]  GCp5−  p5− [Pa]  GCp1−  GCp3−  p3− [Pa]
+    0.500   1.00  -1.10    1246/  -1352   -1.40     -1669  -1.70  -3.20     -3570
+    0.929   1.00  -1.10    1246/  -1352   -1.40     -1669  -1.70  -3.20     -3570
+    2.000   0.94  -1.04    1184/  -1290   -1.28     -1544  -1.58  -3.02     -3383
+    5.000   0.87  -0.97    1110/  -1216   -1.14     -1396  -1.44  -2.81     -3161
+   10.000   0.82  -0.92    1054/  -1159   -1.04     -1284  -1.34  -2.65     -2992
+   20.000   0.77  -0.86     998/  -1103   -0.93     -1172  -1.23  -2.49     -2824
+   46.450   0.70  -0.80     929/  -1035   -0.80     -1035  -1.10  -2.30     -2619
+  100.000   0.70  -0.80     929/  -1035   -0.80     -1035  -1.10  -2.30     -2619
+
+A mano, zona 5, A = 5 m²: fracción log = 0.4302; GCp = −1,4 + 0.4302·0,6 = -1.1419 (función -1.1419); p = q_h·(GCp − 0,18) = -1396 Pa
+Mínimo de 16 psf: con q_h = 600 Pa la zona 4 a 50 m² daría 600·(0,7 + 0,18) = 528 Pa → se eleva a 766 Pa.
+cc_pressure.get_cc_pressure (calcula q_h por su cuenta): (1109.9, -1396.0) Pa frente a (1109.9, -1396.0) Pa de components: iguales.
+Las presiones de cubierta usan la tabla θ ≤ 7° del paquete sin contrastar; las de muro, la Fig. 30.3-1. Para edificios de h > 60 ft (18,3 m) el paquete no tiene tablas de C&C.

@@ -1,0 +1,10 @@
+handcalcs disponible: True; LaTeX de 999 caracteres
+  K_z(z=12.0m, exp=C) = 1.040
+  q_z = 1147 N/m2 (1.147 kN/m2)
+  Cp barlovento = 0.80, Cp sotavento = -0.30
+  GCpi = +/-0.18
+  p_diseno (combo critico) = 0.986 kN/m2
+A mano: K_z = 1.0401, q_z = 1.1468 kN/m², p_diseño = q·(0,85·0,8 + 0,18) = 0.9862 kN/m² (memoria 0.9862)
+LaTeX guardado en memoria_asce7_mwfrs.tex (17 líneas); primera ecuación: q_{z} &= 0.613 \cdot K_{z} \cdot K_{zt} \cdot K_{d} \cdot K_{e} \cdot \frac{ \le
+
+Sin handcalcs: _HAS_HANDCALCS = False, LaTeX vacío = True, p_diseño = 0.9862 kN/m² (igual)
