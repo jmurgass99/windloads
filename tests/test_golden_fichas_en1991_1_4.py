@@ -199,14 +199,16 @@ class TestCadenaCompletaFachada:
 
     Edificio h=10 m, d=40 m (h/d=0.25), zona B (vb=27 m/s), terreno III
     (grado IV CTE, W00483). cpe,10 de EN 1991-1-4 Tabla 7.1 con h/d<=0.25:
-    D=+0.7, E=-0.3, A=-1.0, B=-0.8, C=-0.5. cpi = +0.2/-0.3 (EN 1991-1-4
+    D=+0.7, E=-0.3, A=-1.2, B=-0.8, C=-0.5. cpi = +0.2/-0.3 (EN 1991-1-4
     7.2.9(6) Nota 2, confirmado en ficha W00249: "c_pi=+-0.3/0.2").
 
     Oraculo a mano con qp = 778.75 Pa (ver TestEjemploW00483Recalculado):
       w_net = qp*(cpe - cpi)
       zona D: (0.7-0.2)*qp = +0.389 kPa ; (0.7+0.3)*qp = +0.779 kPa
       zona E: (-0.3-0.2)*qp = -0.389 kPa ; (-0.3+0.3)*qp = 0.000 kPa
-      zona A: -0.934 / -0.545 kPa
+      zona A: (-1.2-0.2)*qp = -1.090 kPa ; (-1.2+0.3)*qp = -0.701 kPa
+      (hasta 1.2.0 este golden fijaba A = -1.0, que no es el valor de la
+      Tabla 7.1: cpe,10 de la zona A es -1.2 para todo h/d)
       zona B: -0.779 / -0.389 kPa
       zona C: -0.545 / -0.156 kPa
     """
@@ -215,7 +217,7 @@ class TestCadenaCompletaFachada:
         # zona: (cpe, w_net con cpi=+0.2, w_net con cpi=-0.3)
         "D": (+0.7, +0.389, +0.779),
         "E": (-0.3, -0.389, 0.000),
-        "A": (-1.0, -0.934, -0.545),
+        "A": (-1.2, -1.090, -0.701),
         "B": (-0.8, -0.779, -0.389),
         "C": (-0.5, -0.545, -0.156),
     }

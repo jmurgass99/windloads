@@ -80,10 +80,13 @@ class TestEC1PressureCoefficients:
         assert cpe["E"] == pytest.approx(-0.3, abs=0.01)
 
     def test_cpe_walls_tall_building(self):
-        """h/d = 3.0 (slender) → D=0.8, E=-0.5"""
+        """h/d = 3.0 → D = 0.8 and E interpolated between h/d = 1 (-0.5) and
+        h/d = 5 (-0.7) of EN 1991-1-4 Table 7.1: -0.5 + (3-1)/4·(-0.2) = -0.6.
+        (Before 1.2.0 the test pinned -0.5, the value the code returned for
+        any h/d > 1.)"""
         cpe = ec1_cpe_walls(h=30.0, d=10.0)
         assert cpe["D"] == pytest.approx(0.8, abs=0.01)
-        assert cpe["E"] == pytest.approx(-0.5, abs=0.01)
+        assert cpe["E"] == pytest.approx(-0.6, abs=1e-9)
 
     def test_cpe_walls_all_zones_present(self):
         cpe = ec1_cpe_walls(h=15.0, d=15.0)

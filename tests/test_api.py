@@ -55,6 +55,7 @@ def test_cc_endpoint():
 def test_export_json_endpoint():
     r = client.post("/api/export", json={
         "target": "json", "height_m": 30, "width_m": 20, "n_stories": 5,
+        "pressures_per_story": [0.6, 0.7, 0.75, 0.8, 0.85],
     })
     assert r.status_code == 200
     import json

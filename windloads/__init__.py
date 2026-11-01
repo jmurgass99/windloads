@@ -89,7 +89,7 @@ __all__ = [
     "WindLoadError", "CodeError", "GeometryError",
     "ConfigurationError", "DependencyError",
 ]
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 # Exception hierarchy
 from .exceptions import (  # noqa: E402

@@ -87,10 +87,12 @@ class TestVortexSheddingChimney:
     """
 
     def test_Vcr_chimney(self):
+        # Default St = 0.18 (EN 1991-1-4 Table E.1, circular, all Re):
+        # V_cr = 0.5*2/0.18 = 5.556 m/s (5.0 m/s with the old default 0.20).
         result = check_vortex_shedding(
             D=2.0, fn=0.5, V=5.0,
             m_per_m=500.0, delta_s=0.02)
-        assert result.V_cr == pytest.approx(5.0)
+        assert result.V_cr == pytest.approx(0.5 * 2.0 / 0.18, abs=1e-3)
 
     def test_lock_in_at_Vcr(self):
         """Wind at V_cr should trigger lock-in."""
@@ -124,7 +126,8 @@ class TestVortexSheddingChimney:
         result = check_vortex_shedding(
             D=2.0, fn=0.5, V=5.0,
             m_per_m=500.0, delta_s=0.02)
-        assert result.y_over_D == pytest.approx(result.y_max_m / 2.0)
+        # both fields are rounded to 6 decimals in VortexResult
+        assert result.y_over_D == pytest.approx(result.y_max_m / 2.0, abs=1e-6)
 
 
 # =========================================================================
@@ -249,7 +252,11 @@ class TestGalloping:
             D=1.0, fn=1.0, V=12.0,
             m_per_m=300.0, delta_s=0.03, aG=2.0)
         assert result.V_CG == pytest.approx(14.4, abs=0.1)
-        assert result.at_risk is False  # V=12 < V_CG=14.4
+        # EN 1991-1-4 (E.19) requires V_CG > 1.25·v_m = 15.0 m/s: 14.4 does
+        # not meet it, so the section IS at risk (before 1.2.0 this test
+        # pinned at_risk=False by comparing 14.4 with 12 without the 1.25).
+        assert result.at_risk is True
+        assert result.safety_ratio == pytest.approx(14.4 / 15.0, abs=1e-3)
 
     def test_galloping_D_section_high_aG(self):
         """D-section with aG=10: very low V_CG -> likely at risk."""

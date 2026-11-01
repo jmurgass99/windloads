@@ -32,7 +32,11 @@ class EC1WindLoad:
         List of individual story heights [m] bottom-to-top.
         If not provided, assumed a single uniform story of height H.
     enclosure : str
-        'closed' or 'open_one_face' (internal pressure classification).
+        Only 'closed' is implemented (cpi = +0.2 / -0.3, EN 1991-1-4
+        §7.2.9(6) Note 2). Any other value raises ConfigurationError: with a
+        dominant opening cpi = 0.75 or 0.90 times the cpe of that face
+        (§7.2.9(3)) and the package does not compute it. Before 1.2.0
+        'open_one_face' was accepted and silently ignored.
     cdir : float
         Directional factor (default 1.0, national annex).
     cseason : float
@@ -61,6 +65,12 @@ class EC1WindLoad:
     rho: float = 1.25  # air density [kg/m³]
 
     def __post_init__(self) -> None:
+        if self.enclosure != "closed":
+            from ..exceptions import ConfigurationError
+            raise ConfigurationError(
+                f"enclosure={self.enclosure!r} not implemented: only 'closed' "
+                "(cpi +0.2/-0.3). With a dominant opening cpi = 0.75 or 0.90 "
+                "x cpe of that face (EN 1991-1-4 §7.2.9(3)).")
         if self.story_heights is None:
             self.story_heights = [self.building_height]
 
@@ -113,7 +123,7 @@ class EC1WindLoad:
     def story_forces(self) -> list:
         """Story-level wind forces [kN] per floor."""
         return self._envelope.ec1_story_forces(
-            self._terrain, self.vb_design, self._Cs_Cd_val
+            self._terrain, self.vb_design, self._Cs_Cd_val, self.rho
         )
 
     def pressure_profile(self, n_points: int = 20) -> list[dict]:

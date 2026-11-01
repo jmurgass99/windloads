@@ -18,7 +18,8 @@ Critical velocity for lock-in:
 where:
     f_n  : natural frequency of the structure [Hz]
     D    : cross-wind dimension of the cross-section [m]
-    St   : Strouhal number (~ 0.20 for circular, ~ 0.12 for rectangular)
+    St   : Strouhal number, EN 1991-1-4 Table E.1 (0.18 for circular sections at
+           all Re; rectangles from Figure E.1, 0.12 for d/b = 1)
 
 Scruton number (mass-damping parameter):
     Sc = 2 * m * delta_s / (rho * D^2)
@@ -32,21 +33,25 @@ Resonant amplitude (EN 1991-1-4 Annex E.1):
     y_max = (1/St^2) * (1/Sc) * K * K_w * clat * D
 
 where:
-    K    : mode shape correction factor (1.0 for fundamental mode)
-    K_w  : correlation length factor (~ 0.6 for typical structures)
-    clat : lateral force coefficient (~ 0.2 for circular, ~ 1.0 for rectangular)
+    K    : mode shape factor, Table E.5 (0.13 cantilever, 0.10 simply
+           supported, 0.11 fixed-fixed); the default is 0.13
+    K_w  : effective correlation length factor, Expression (E.8), <= 0.6
+    clat : lateral force coefficient, Table E.2 / Figure E.2 (circular 0.7
+           for Re <= 3e5, 0.2 for 5e5 to 5e6, 0.3 above 1e7; rectangle
+           0.5 <= d/b <= 10: 1.1)
 
 Galloping (EN 1991-1-4 Annex E.2)
 ----------------------------------
-Galloping onset velocity:
+Galloping onset velocity (Expression E.18):
     V_CG = 2 * Sc * f_n * D / aG
 
 where:
-    aG : galloping instability factor (den Hartog criterion)
-         aG = -(dC_L/d_alpha + C_D) evaluated at alpha=0
-         Typical: ~ 10 for D-section, ~ 2 for rectangular, ~ 0.7 for ice-coated cables
+    aG : factor of galloping instability, Table E.7 (positive for sections
+         prone to galloping; aG = 10 if unknown). Examples of Table E.7:
+         rectangle d/b = 1: 1.2, d/b = 1.5: 1.7, d/b = 2: 2; d/b = 1/2: 0.7;
+         ice on cables: 1.0; hexagon: 1.0.
 
-If V_mean > V_CG, the structure is at risk of galloping.
+EN 1991-1-4 E.2.2(2), Expression (E.19), requires V_CG > 1.25 * v_m.
 
 Backward compatibility
 -----------------------
@@ -66,7 +71,9 @@ from .exceptions import ConfigurationError, GeometryError
 # Default Strouhal numbers for common cross-sections
 # =========================================================================
 STROUHAL_NUMBERS: dict[str, float] = {
-    "circular": 0.20,
+    # EN 1991-1-4 Table E.1: circular 0.18 (0.20 before 1.2.0), square
+    # (d/b = 1, Figure E.1) 0.12. The other entries were not checked.
+    "circular": 0.18,
     "square": 0.12,
     "rectangular": 0.12,
     "hexagonal": 0.14,
@@ -77,9 +84,9 @@ STROUHAL_NUMBERS: dict[str, float] = {
 
 # Lateral force coefficient clat for vortex-induced vibration amplitude
 _CLAT: dict[str, float] = {
-    "circular": 0.20,
-    "square": 1.00,
-    "rectangular": 1.00,
+    "circular": 0.20,      # Figure E.2, 5e5 <= Re <= 5e6 (0.7 below 3e5)
+    "square": 1.10,        # Table E.2, rectangle 0.5 <= d/b <= 10
+    "rectangular": 1.10,   # Table E.2 (1.00 before 1.2.0)
     "hexagonal": 0.50,
     "octagonal": 0.40,
 }
@@ -100,8 +107,8 @@ class GallopingResult(NamedTuple):
     """Result of a galloping assessment."""
     V_CG: float             # onset velocity for galloping [m/s]
     Sc: float               # Scruton number [-]
-    at_risk: bool           # True if V_mean >= V_CG
-    safety_ratio: float     # V_CG / V_mean (>1 means safe)
+    at_risk: bool           # True if V_CG <= 1.25*V_mean (E.19 not met)
+    safety_ratio: float     # V_CG / (1.25*V_mean): >1 means E.19 is met
 
 
 def _validate_positive(**kwargs: float) -> None:
@@ -138,7 +145,7 @@ def scruton_number(m_per_m: float, delta_s: float, D: float,
     return 2.0 * m_per_m * delta_s / (rho_air * D ** 2)
 
 
-def critical_velocity(fn: float, D: float, St: float = 0.20) -> float:
+def critical_velocity(fn: float, D: float, St: float = 0.18) -> float:
     """
     Critical wind speed for vortex shedding lock-in:
         V_cr = f_n * D / St
@@ -150,7 +157,7 @@ def critical_velocity(fn: float, D: float, St: float = 0.20) -> float:
     D : float
         Cross-wind dimension [m].
     St : float
-        Strouhal number (default 0.20 for circular sections).
+        Strouhal number (default 0.18, circular sections, EN 1991-1-4 Table E.1).
 
     Returns
     -------
@@ -167,10 +174,11 @@ def check_vortex_shedding(
     m_per_m: float,
     delta_s: float,
     rho_air: float = 1.25,
-    St: float = 0.20,
+    St: float = 0.18,
     section: str = "circular",
-    K: float = 1.0,
+    K: float = 0.13,
     K_w: float = 0.6,
+    clat: float | None = None,
 ) -> VortexResult:
     """
     Complete vortex shedding lock-in check per EN 1991-1-4 Annex E.
@@ -191,14 +199,22 @@ def check_vortex_shedding(
     rho_air : float
         Air density [kg/m^3] (default 1.25).
     St : float
-        Strouhal number (default 0.20 for circular sections).
+        Strouhal number (default 0.18 for circular sections, Table E.1).
     section : str
         Cross-section shape for clat lookup: 'circular', 'square',
         'rectangular', 'hexagonal', 'octagonal'.
     K : float
-        Mode shape correction factor (default 1.0 for first mode).
+        Mode shape factor of EN 1991-1-4 Table E.5: 0.13 for a cantilever in
+        its first mode (default), 0.10 simply supported, 0.11 fixed-fixed.
+        Before 1.2.0 the default was 1.0, which overstated y_max 7.7 times.
     K_w : float
-        Correlation length factor (default 0.6).
+        Effective correlation length factor, Expression (E.8): <= 0.6
+        (default 0.6, the upper bound).
+    clat : float, optional
+        Lateral force coefficient. If None it is taken from ``section``:
+        circular 0.2 (Figure E.2, valid only for 5e5 <= Re <= 5e6; it is 0.7
+        for Re <= 3e5), rectangular/square 1.1 (Table E.2). Pass the value of
+        Figure E.2 / Table E.3 for the actual Reynolds number and v_crit/v_m.
 
     Returns
     -------
@@ -223,7 +239,8 @@ def check_vortex_shedding(
 
     # Resonant amplitude (EN 1991-1-4 Annex E.1, Eq. E.7)
     # y_max = (1/St^2) * (1/Sc) * K * K_w * clat * D
-    clat = _CLAT.get(section, 0.20)
+    if clat is None:
+        clat = _CLAT.get(section, 0.20)
     if Sc > 0:
         y_max = (1.0 / St ** 2) * (1.0 / Sc) * K * K_w * clat * D
     else:
@@ -272,20 +289,19 @@ def check_galloping(
     delta_s : float
         Logarithmic decrement of structural damping [-].
     aG : float
-        Galloping instability factor (den Hartog criterion).
-        Must be > 0 for galloping to be possible.
-        Typical values:
-            - Square prism: ~ 2.0
-            - D-section: ~ 10.0
-            - Rectangular 2:1: ~ 0.7
-            - Iced cable: ~ 1.0
+        Factor of galloping instability of EN 1991-1-4 Table E.7 (positive
+        for sections prone to galloping). Examples: rectangle d/b = 1: 1.2,
+        d/b = 2: 2, d/b = 1/2: 0.7; ice on cables: 1.0; aG = 10 when no
+        value is known (E.2.2(1)).
     rho_air : float
         Air density [kg/m^3] (default 1.25).
 
     Returns
     -------
     GallopingResult
-        Named tuple with V_CG, Sc, at_risk flag, and safety ratio.
+        Named tuple with V_CG, Sc, at_risk flag and safety ratio. ``at_risk``
+        is True when Expression (E.19), V_CG > 1.25·v_m, is NOT met; before
+        1.2.0 it only compared V_CG with v_m (without the 1.25 margin).
 
     Notes
     -----
@@ -309,8 +325,9 @@ def check_galloping(
     # EN 1991-1-4 Annex E.2, Eq. E.18
     V_CG = 2.0 * Sc * fn * D / aG
 
-    at_risk = V >= V_CG
-    safety_ratio = V_CG / V if V > 0 else float("inf")
+    # EN 1991-1-4 E.2.2(2), Expression (E.19): V_CG > 1.25 * v_m
+    at_risk = V_CG <= 1.25 * V
+    safety_ratio = V_CG / (1.25 * V) if V > 0 else float("inf")
 
     return GallopingResult(
         V_CG=round(V_CG, 3),

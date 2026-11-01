@@ -165,12 +165,17 @@ def _draw_face_arrows(
         anchor, direction = face_to_point.get(
             load.face, ((cx, cy), (1, 0))
         )
-        # Flechas apuntan HACIA el edificio si presión positiva
-        sign = +1 if load.pressure_kPa >= 0 else -1
-        dx = -direction[0] * arrow_len * sign
-        dy = -direction[1] * arrow_len * sign
-        start = (anchor[0] + dx, anchor[1] + dy)
-        end = anchor
+        # Presión (+): la flecha nace FUERA de la cara (anchor + n·L, n normal
+        # exterior) y termina en la cara, apuntando hacia el edificio.
+        # Succión (−): nace en la cara y apunta hacia fuera.
+        # Antes de 1.2.0 el signo estaba invertido: las flechas de presión
+        # nacían dentro del edificio y salían hacia fuera.
+        out_pt = (anchor[0] + direction[0] * arrow_len,
+                  anchor[1] + direction[1] * arrow_len)
+        if load.pressure_kPa >= 0:
+            start, end = out_pt, anchor
+        else:
+            start, end = anchor, out_pt
         layer = "W-PRESS" if load.pressure_kPa >= 0 else "W-SUCT"
         msp.add_line(start, end, dxfattribs={"layer": layer})
         # Punta de flecha (V)

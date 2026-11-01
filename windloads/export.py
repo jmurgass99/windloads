@@ -41,7 +41,7 @@ class StoryPressure:
     """Per-story wind force resultant."""
     story: int                # 1-based story number (1 = first floor above ground)
     z_top_m: float            # top elevation of the story [m]
-    pressure_Pa: float        # equivalent uniform pressure on tributary wall [Pa]
+    pressure_Pa: float        # net equivalent pressure, or qp/qz if no width given [Pa]
     Fx_kN: float              # horizontal resultant force in load direction [kN]
     label: str = ""           # optional human label
 
@@ -61,7 +61,9 @@ class LoadPattern:
 
     @property
     def overturning_moment_kNm(self) -> float:
-        # F * z_top is conservative; envelope uses z_mid in real practice
+        # Each story force is applied at its top floor (z_top), as the
+        # .s2k/.e2k snippets do; MWFRSEnvelope.overturning_moment uses z_mid,
+        # so this value is larger by sum(F·h_story/2).
         return float(sum(p.Fx_kN * p.z_top_m for p in self.pressures_by_level))
 
 
@@ -140,17 +142,19 @@ def from_envelope(story_forces, name: str, direction: str,
                           .qp_or_qz, .Fx)
     name                : pattern name (e.g. 'WX+')
     direction           : '+X', '-X', '+Y', '-Y'
-    tributary_widths_m  : optional building width used to back-out a
-                          per-story equivalent pressure from Fx (Pa).
-                          If None, pressure_Pa is reported as qp_or_qz.
+    tributary_widths_m  : optional loaded width B [m]. When given,
+                          pressure_Pa is the equivalent net pressure
+                          Fx·1000 / (B·(z_top − z_bot)) that reproduces Fx on
+                          the story strip. If None, pressure_Pa is the
+                          velocity pressure qp_or_qz of the story (not a net
+                          pressure). Before 1.2.0 the width was ignored and
+                          qp_or_qz was always reported.
     """
     pressures = []
     for sf in story_forces:
-        if tributary_widths_m and tributary_widths_m > 0:
-            # Fx [kN] -> N ; A_trib uses story height range, approximate
-            # using current story height = z_top - previous z_top.
-            # Fallback: report the velocity pressure directly.
-            pressure = sf.qp_or_qz
+        h_story = float(sf.z_top) - float(getattr(sf, "z_bot", 0.0))
+        if tributary_widths_m and tributary_widths_m > 0 and h_story > 0:
+            pressure = sf.Fx * 1000.0 / (tributary_widths_m * h_story)
         else:
             pressure = sf.qp_or_qz
         pressures.append(StoryPressure(

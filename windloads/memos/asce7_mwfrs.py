@@ -7,6 +7,8 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
+from ..pressure import asce7_leeward_Cp
+
 try:
     from handcalcs.decorator import handcalc
     _HAS_HANDCALCS = True
@@ -88,23 +90,23 @@ def mwfrs_directional_memo(V_ms, z, exposure="C", K_zt=1.0, K_d=0.85,
         raise ValueError("L_over_B debe ser positivo")
 
     K_z = _kz(z, exposure)
-    latex_q, q_z = _q_z(K_z, K_zt, K_d, K_e, V_ms)
+    out_q = _q_z(K_z, K_zt, K_d, K_e, V_ms)
+    # Sin handcalcs el decorador es la identidad y devuelve solo el numero.
+    latex_q, q_z = out_q if _HAS_HANDCALCS else ("", out_q)
 
-    # Cp Tabla 27.3-1
+    # Cp Fig. 27.3-1: barlovento 0.8; sotavento -0.5 (L/B<=1), -0.3 (2),
+    # -0.2 (>=4) con interpolacion lineal (antes de 1.2.0 una sola recta de
+    # -0.5 a -0.2 entre 1 y 4: -0.4 en L/B = 2 en vez de -0.3).
     Cp_wind = 0.8
-    if L_over_B <= 1.0:
-        Cp_lee = -0.5
-    elif L_over_B >= 4.0:
-        Cp_lee = -0.2
-    else:
-        Cp_lee = -0.5 + (L_over_B - 1.0) * (0.3 / 3.0)
+    Cp_lee = asce7_leeward_Cp(L_over_B)
 
     GCpi_pos = 0.18 if enclosed else 0.55
     GCpi_neg = -0.18 if enclosed else -0.55
 
-    latex_p, (p_wp, p_wn, p_lp, p_ln) = _net_pressure_walls(
+    out_p = _net_pressure_walls(
         q_z, G, Cp_wind, Cp_lee, GCpi_pos, GCpi_neg,
     )
+    latex_p, (p_wp, p_wn, p_lp, p_ln) = out_p if _HAS_HANDCALCS else ("", out_p)
 
     # Envolvente para diseno: maxima magnitud sobre cualquier superficie
     p_design = max(abs(p_wp), abs(p_wn), abs(p_lp), abs(p_ln))

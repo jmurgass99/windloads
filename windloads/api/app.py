@@ -10,6 +10,7 @@ except ImportError as exc:
         "fastapi requerido: pip install windloads[api]"
     ) from exc
 
+from .. import __version__ as _VERSION
 from .._brand import NAME as _BRAND_NAME
 from ..services import ec1, asce7, nsr10, components, export_svc
 
@@ -24,6 +25,7 @@ def root():
         "endpoints": [
             "/api/wind/ec1", "/api/wind/asce7", "/api/wind/nsr10",
             "/api/wind/components/cc", "/api/export",
+            "/api/wind/openfoam-pre",
         ],
     }
 
@@ -125,7 +127,7 @@ def create_router() -> APIRouter:
 # ---------------------------------------------------------------------------
 # App standalone
 # ---------------------------------------------------------------------------
-app = FastAPI(title=f"{_BRAND_NAME} API", version="0.1.0")
+app = FastAPI(title=f"{_BRAND_NAME} API", version=_VERSION)
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"],
     allow_credentials=True, allow_methods=["*"], allow_headers=["*"],

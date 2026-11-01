@@ -59,13 +59,17 @@ NSR10_WIND_SPEED_BY_CITY: dict[str, float] = {
 # Colombia is divided into 5 wind hazard zones. Each zone has an associated
 # basic wind speed V (50-year MRI, open terrain, 10 m height).
 #
-# FIXME: confirmar valores exactos contra Figura B.6.5-1 de la NSR-10.
-# Los valores aquí son los típicamente citados en literatura técnica:
+# Arroyo Amell y Ramos Castillo (2015), Ingeniería y Ciencia 11(21):177-195,
+# doi:10.17230/ingciencia.11.21.9, p. 181: la NSR-10 distingue 5 regiones,
+# de 17 m/s (60 km/h) en la región 1 a 36 m/s (130 km/h) en la región 5, y
+# 28 m/s (100 km/h) para buena parte del territorio. Las zonas 2 y 4 (80 y
+# 120 km/h) siguen SIN CONTRASTAR con la Figura B.6.4-1. Antes de 1.2.0 la
+# zona 5 valía 140 km/h ≈ 39 m/s.
 #   Zona 1 :  60 km/h  ≈ 17 m/s   (baja amenaza — Amazonía, sur Andino)
-#   Zona 2 :  80 km/h  ≈ 22 m/s
+#   Zona 2 :  80 km/h  ≈ 22 m/s   (sin contrastar)
 #   Zona 3 : 100 km/h  ≈ 28 m/s   (interior Andino general)
-#   Zona 4 : 120 km/h  ≈ 33 m/s   (Caribe interior, Llanos norte)
-#   Zona 5 : 140 km/h  ≈ 39 m/s   (costa Caribe, Guajira)
+#   Zona 4 : 120 km/h  ≈ 33 m/s   (sin contrastar)
+#   Zona 5 : 130 km/h  ≈ 36 m/s   (costa Caribe, Guajira)
 # Se conservan también los valores específicos por capital del mapa anterior
 # (que pueden exceder estos mínimos zonales) para no perder precisión.
 # ---------------------------------------------------------------------------
@@ -74,7 +78,7 @@ NSR10_WIND_ZONES: dict[int, float] = {
     2: 22.0,   # 80 km/h
     3: 28.0,   # 100 km/h
     4: 33.0,   # 120 km/h
-    5: 39.0,   # 140 km/h — alta amenaza (costa Caribe)
+    5: 36.0,   # 130 km/h — alta amenaza (costa Caribe)
 }
 
 
@@ -281,7 +285,12 @@ class NSR10WindLoad:
     enclosure : str
         'cerrado', 'parcialmente_abierto', or 'abierto'.
     importance_factor : float
-        Importance factor Iw (Cat I=0.87, II=1.0, III=1.15, IV=1.15).
+        Importance factor I (groups I to IV: 0.87, 1.0, 1.15, 1.15 — values
+        of ASCE 7-05, not checked against NSR-10 Tabla B.6.5-1). It
+        multiplies the velocity pressure, qz = 0.613·Kz·Kzt·Kd·V²·I, as in
+        ASCE 7-05 (adopted by NSR-10, Arroyo y Ramos 2015). Before 1.2.0 it
+        multiplied V, so qz grew with I²: +32 % instead of +15 % for
+        I = 1.15 and −24 % instead of −13 % for I = 0.87.
 
     Examples
     --------
@@ -325,8 +334,12 @@ class NSR10WindLoad:
 
     @property
     def Vb_design(self) -> float:
-        """Design wind speed: Vb,design = Iw · Vb,basic [m/s]"""
-        return self.importance_factor * self._Vb_basic
+        """
+        Equivalent speed √I · Vb,basic [m/s]: with it 0.613·Kz·Kzt·Kd·Vb_design²
+        equals qz·I, the velocity pressure of ASCE 7-05 Eq. 6-15 that NSR-10
+        adopted. It is not a wind speed of the code; I applies to qz.
+        """
+        return self.importance_factor ** 0.5 * self._Vb_basic
 
     def qz_at(self, z: float) -> float:
         """Velocity pressure qz [Pa] at height z."""

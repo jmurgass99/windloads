@@ -16,7 +16,7 @@ class StoryWindForce:
     z_bot: float    # bottom height [m]
     z_top: float    # top height [m]
     z_mid: float    # centroid height [m]
-    qp_or_qz: float # peak pressure at story centroid [Pa]
+    qp_or_qz: float # EC1: qp(ze) windward; ASCE 7 / NSR-10: qz(z_top) [Pa]
     Fx: float       # horizontal force (windward direction) [kN]
     Fy: float = 0.0 # horizontal force (perpendicular) [kN]
 
@@ -52,25 +52,51 @@ class MWFRSEnvelope:
     # ------------------------------------------------------------------
     def ec1_story_forces(self, terrain_profile,
                           vb: float,
-                          Cs_Cd: float = 1.0) -> list[StoryWindForce]:
+                          Cs_Cd: float = 1.0,
+                          rho: float = 1.25) -> list[StoryWindForce]:
         """
-        Compute story-level wind forces using EC1-1-4 §5.3.
+        Story-level wind forces from the wall pressures of EN 1991-1-4 §7.2.2
+        (zones D and E acting simultaneously, §5.3 with Aref = B·h_story):
+
+            F_story = cs·cd · f_corr · (cpe,D · qp(ze) − cpe,E · qp(h)) · B · h_story
+
+        * ze is the reference height of the windward wall (Figure 7.4:
+          ze = h if h <= b; ze = b below z = b and h above when b < h <= 2b;
+          strips at the story top in the middle region when h > 2b), with
+          b = B the crosswind dimension;
+        * the leeward wall uses qp(h) (recommended procedure, Note to 7.2.2(1));
+        * f_corr is the lack-of-correlation factor of §7.2.2(3): 0.85 for
+          h/d <= 1, 1.0 for h/d >= 5, linear in between;
+        * internal pressure cancels for the whole building and is not included.
+
+        Before 1.2.0 the force used qp(z_top)·(cpe,D + 0.3): the leeward cpe was
+        computed but not used, the internal-pressure coefficient (-0.3) was
+        subtracted on the windward face only, and the lack of correlation and
+        the ze rules were ignored.
 
         Parameters
         ----------
         terrain_profile : TerrainProfile  (must be code='EC1')
         vb : float  basic wind velocity [m/s]
         Cs_Cd : float  structural factor (default 1.0 for rigid)
+        rho : float  air density [kg/m³]
 
         Returns
         -------
-        list of StoryWindForce objects
+        list of StoryWindForce objects; ``qp_or_qz`` is qp(ze) of the windward
+        wall [Pa].
         """
-        from .pressure import ec1_cpe_walls
+        from .pressure import (
+            ec1_cpe_walls,
+            ec1_lack_of_correlation_factor,
+            ec1_windward_reference_height,
+        )
 
         cpe = ec1_cpe_walls(self.H, self.D)
         cpe_windward = cpe["D"]
-        cpe_leeward  = cpe["E"]
+        cpe_leeward = cpe["E"]
+        f_corr = ec1_lack_of_correlation_factor(self.H, self.D)
+        qp_h = terrain_profile.ec1_peak_velocity_pressure(self.H, vb, rho)
 
         results = []
         floors = self._floors_z
@@ -79,12 +105,10 @@ class MWFRSEnvelope:
             z_top = floors[i + 1]
             z_mid = 0.5 * (z_bot + z_top)
 
-            # reference height = z_top (conservative per EC1 §7.2.2)
-            qp = terrain_profile.ec1_peak_velocity_pressure(z_top, vb)
+            ze = ec1_windward_reference_height(z_top, self.H, self.B)
+            qp_ze = terrain_profile.ec1_peak_velocity_pressure(ze, vb, rho)
 
-            # Net pressure: windward + leeward (combined)
-            w_net = qp * (cpe_windward - (-0.3))  # typical internal
-            # Force on story tributary area
+            w_net = f_corr * (cpe_windward * qp_ze - cpe_leeward * qp_h)
             A_trib = self.B * h        # tributary area [m²]
             Fx = Cs_Cd * w_net * A_trib / 1000  # [kN]
 
@@ -93,7 +117,7 @@ class MWFRSEnvelope:
                 z_bot=z_bot,
                 z_top=z_top,
                 z_mid=z_mid,
-                qp_or_qz=round(qp, 2),
+                qp_or_qz=round(qp_ze, 2),
                 Fx=round(Fx, 2),
             ))
         return results

@@ -1,6 +1,20 @@
-"""Servicio EC1 (EN 1991-1-4) — wind pressures sobre edificios cerrados."""
+"""Servicio EC1 (EN 1991-1-4) — presiones de viento sobre edificios cerrados.
+
+Delega en ``windloads.terrain.TerrainProfile`` (q_p, v_m) y en
+``windloads.pressure.ec1_cpe_walls`` (Tabla 7.1). Antes de 1.2.0 intentaba
+llamar a un atributo inexistente de ``EC1WindLoad`` y caía siempre en un
+cálculo propio con coeficientes fijos (barlovento 0,8, sotavento −0,5,
+lateral −0,7, cubierta −1,2) y devolvía como ``vm_at_height`` la velocidad
+de pico √(2·q_p/ρ), no la velocidad media.
+"""
 from __future__ import annotations
 from dataclasses import dataclass
+
+from ..exceptions import ConfigurationError
+from ..pressure import ec1_cpe_walls
+from ..terrain import TerrainProfile
+
+_TC = {0: "0", 1: "I", 2: "II", 3: "III", 4: "IV"}
 
 
 @dataclass(frozen=True)
@@ -9,104 +23,58 @@ class EC1Input:
 
     Unidades SI: m, m/s, kPa.
     """
-    vb: float                          # basic wind velocity m/s
+    vb: float                          # basic wind velocity vb,0 m/s
     height: float                      # H edificio m
     width: float                       # B perpendicular al viento m
     depth: float                       # D paralelo al viento m
-    terrain_category: int = 2          # 0..IV (EC1 tabla 4.1)
+    terrain_category: int = 2          # 0..4 (EC1 tabla 4.1: 0, I, II, III, IV)
     c_dir: float = 1.0                 # factor direccional
     c_season: float = 1.0
     rho_air: float = 1.25              # kg/m³
-    gust_factor: float = 1.0           # Cs·Cd (default 1.0 edificios rigidos)
+    gust_factor: float = 1.0           # cs·cd (1.0 solo justificado si H <= 15 m)
 
 
 @dataclass(frozen=True)
 class EC1Result:
-    qp_at_height: float                # kPa
-    vm_at_height: float                # m/s
-    cp_windward: float
-    cp_leeward: float
-    cp_side: float
-    cp_roof_min: float
-    cp_roof_max: float
-    pressure_windward: float           # kPa neto
-    pressure_leeward: float
+    qp_at_height: float                # kPa, q_p(H)
+    vm_at_height: float                # m/s, velocidad media v_m(H)
+    cp_windward: float                 # cpe,10 zona D (Tabla 7.1)
+    cp_leeward: float                  # cpe,10 zona E (Tabla 7.1)
+    cp_side: float                     # cpe,10 zona A (Tabla 7.1)
+    cp_roof_min: float                 # cpe,10 zona F cubierta plana, aleros vivos (Tabla 7.2)
+    cp_roof_max: float                 # cpe,10 zona I, rama positiva (Tabla 7.2)
+    pressure_windward: float           # kPa, q_p·cpe,D·cs·cd (sin presión interior)
+    pressure_leeward: float            # kPa, q_p·cpe,E·cs·cd (sin presión interior)
     summary: dict
 
 
 def compute_ec1(inp: EC1Input) -> EC1Result:
-    """Cálculo EC1 simplificado del flujo viento sobre edificio cerrado.
+    """Presión pico a la altura H y presiones exteriores de muros (EN 1991-1-4 §4.5 y §7.2.2).
 
-    Intenta delegar a la API interna real del paquete (`windloads.codes.ec1_1_4`).
-    Si los nombres no coinciden o falla, usa una implementación placeholder
-    analítica que reproduce los pasos esenciales de EN 1991-1-4 §4-7.
+    q_p y v_m se evalúan a z = H con v_b = c_dir·c_season·v_b,0 y c_o = 1. Las
+    presiones de muro son exteriores (w_e = q_p·c_pe); la presión interior se
+    cancela en la resultante del edificio. ``summary`` incluye la presión
+    neta barlovento − sotavento sin el factor de falta de correlación.
     """
-    try:
-        from windloads import EC1WindLoad
-        # Mapear terrain_category int a string romano EC1
-        tc_map = {0: "0", 1: "I", 2: "II", 3: "III", 4: "IV"}
-        tc = tc_map.get(inp.terrain_category, "II")
-        load = EC1WindLoad(
-            vb=inp.vb,
-            terrain_cat=tc,
-            building_height=inp.height,
-        )
-        qp = getattr(load, "qp", None)
-        if callable(qp):
-            qp_val = qp(inp.height)
-        else:
-            qp_val = qp
-        if qp_val is None:
-            qp_val = _placeholder_qp(inp)
-        # Si viene en Pa, normaliza a kPa
-        if qp_val > 100:
-            qp_val = qp_val / 1000.0
-        return _build_result(inp, qp_at_h=qp_val)
-    except Exception:
-        return _placeholder_compute(inp)
-
-
-def _placeholder_qp(inp: EC1Input) -> float:
-    """qp(z) simplificado: 0.5·ρ·vb²·cr²·co²·(1+7·Iv) — sin cr exacto."""
-    import math
-    z = inp.height
-    z0_table = {0: 0.003, 1: 0.01, 2: 0.05, 3: 0.30, 4: 1.0}
-    zmin_table = {0: 1.0, 1: 1.0, 2: 2.0, 3: 5.0, 4: 10.0}
-    z0 = z0_table.get(inp.terrain_category, 0.05)
-    zmin = zmin_table.get(inp.terrain_category, 2.0)
-    z_eff = max(z, zmin)
-    kr = 0.19 * (z0 / 0.05) ** 0.07
-    cr = kr * math.log(z_eff / z0)
-    co = 1.0
-    Iv = 1.0 / (co * math.log(z_eff / z0))
-    vm = cr * co * inp.vb * inp.c_dir * inp.c_season
-    qp_Pa = 0.5 * inp.rho_air * vm * vm * (1 + 7 * Iv)
-    return qp_Pa / 1000.0  # kPa
-
-
-def _placeholder_compute(inp: EC1Input) -> EC1Result:
-    qp = _placeholder_qp(inp)
-    return _build_result(inp, qp_at_h=qp)
-
-
-def _build_result(inp: EC1Input, qp_at_h: float) -> EC1Result:
-    cp_w = 0.8
-    cp_l = -0.5
-    cp_s = -0.7
-    cp_rmin = -1.2
-    cp_rmax = 0.0
-    p_w = qp_at_h * cp_w * inp.gust_factor
-    p_l = qp_at_h * cp_l * inp.gust_factor
-    import math
-    vm_h = math.sqrt(qp_at_h * 1000 * 2 / inp.rho_air)
+    if inp.terrain_category not in _TC:
+        raise ConfigurationError(
+            f"terrain_category debe ser 0..4, recibido {inp.terrain_category!r}")
+    tp = TerrainProfile(code="EC1", category=_TC[inp.terrain_category])
+    vb = inp.vb * inp.c_dir * inp.c_season
+    qp = tp.ec1_peak_velocity_pressure(inp.height, vb, inp.rho_air) / 1000.0
+    vm = tp.ec1_mean_wind_velocity(inp.height, vb)
+    cpe = ec1_cpe_walls(inp.height, inp.depth)
+    p_w = qp * cpe["D"] * inp.gust_factor
+    p_l = qp * cpe["E"] * inp.gust_factor
     return EC1Result(
-        qp_at_height=qp_at_h, vm_at_height=vm_h,
-        cp_windward=cp_w, cp_leeward=cp_l, cp_side=cp_s,
-        cp_roof_min=cp_rmin, cp_roof_max=cp_rmax,
+        qp_at_height=qp, vm_at_height=vm,
+        cp_windward=cpe["D"], cp_leeward=cpe["E"], cp_side=cpe["A"],
+        cp_roof_min=-1.8, cp_roof_max=0.2,
         pressure_windward=p_w, pressure_leeward=p_l,
         summary={
             "code": "EN 1991-1-4",
-            "qp_kPa": round(qp_at_h, 4),
+            "qp_kPa": round(qp, 4),
+            "h_over_d": round(inp.height / inp.depth, 3),
             "p_net_windward_minus_leeward_kPa": round(p_w - p_l, 4),
         },
     )

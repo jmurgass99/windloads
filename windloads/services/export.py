@@ -1,4 +1,10 @@
-"""Servicio: exportar resultados a SAP/ETABS/JSON/CSV."""
+"""Servicio: exportar presiones por planta a JSON/CSV (y cabeceras SAP/ETABS).
+
+Los destinos "sap" y "etabs" solo escriben la definición del patrón de carga,
+sin cargas: para las cargas por planta usa ``windloads.export.to_sap_s2k`` /
+``to_etabs_e2k``. Antes de 1.2.0, sin ``pressures_per_story`` el servicio
+inventaba presiones (0,8 − 0,05·i kPa); ahora es obligatorio.
+"""
 from __future__ import annotations
 from dataclasses import dataclass
 
@@ -23,9 +29,12 @@ def export_to(inp: ExportInput) -> ExportResult:
     """Genera contenido exportable (sin escribir a disco)."""
     import json
     if inp.pressures_per_story is None:
-        pps = [0.8 - 0.05 * i for i in range(inp.n_stories)]
-    else:
-        pps = inp.pressures_per_story
+        raise ValueError("pressures_per_story es obligatorio (kPa por planta, "
+                         "de abajo arriba); el servicio no inventa presiones")
+    pps = list(inp.pressures_per_story)
+    if len(pps) != inp.n_stories:
+        raise ValueError(f"pressures_per_story tiene {len(pps)} valores y "
+                         f"n_stories = {inp.n_stories}")
     if inp.target == "json":
         payload = {"stories": [
             {"id": i + 1, "z_m": (i + 1) * (inp.height_m / inp.n_stories),

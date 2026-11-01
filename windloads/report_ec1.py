@@ -17,9 +17,14 @@ class EC1ReportInput:
 
 def generar_reporte_ec1(inp: EC1ReportInput) -> str:
     z0 = {0: 0.003, 1: 0.01, 2: 0.05, 3: 0.3, 4: 1.0}.get(inp.terrain_category, 0.05)
+    # EN 1991-1-4 Table 4.1: z_min por categoria (antes de 1.2.0 se usaba
+    # max(H, 10 m) para todas, lo que sobrevaloraba q_p en edificios < 10 m
+    # salvo en la categoria IV).
+    zmin = {0: 1.0, 1: 1.0, 2: 2.0, 3: 5.0, 4: 10.0}.get(inp.terrain_category, 2.0)
     kr = 0.19 * (z0 / 0.05) ** 0.07
     import math
-    cr = kr * math.log(max(inp.H_m, 10) / z0)
+    z_eff = max(inp.H_m, zmin)
+    cr = kr * math.log(z_eff / z0)
 
     if inp.c_o is not None:
         co = float(inp.c_o)
@@ -37,7 +42,7 @@ def generar_reporte_ec1(inp: EC1ReportInput) -> str:
         f"# Reporte EC1 - Acciones de Viento (EN 1991-1-4)\n\n"
         f"## 1. Velocidad basica\n- v_b,0 = {inp.vb_0_m_s} m/s\n"
         f"- v_b = c_dir * c_season * v_b,0 = {inp.vb_0_m_s} m/s\n\n"
-        f"## 2. Categoria de terreno y orografia\n- Categoria {inp.terrain_category}, z0 = {z0} m\n"
+        f"## 2. Categoria de terreno y orografia\n- Categoria {inp.terrain_category}, z0 = {z0} m, z_min = {zmin} m\n"
         f"{co_line}\n\n"
         f"## 3. Velocidad media a z=H\n- k_r = {kr:.4f}\n- c_r(z) = {cr:.4f}\n- v_m(z) = {vm:.2f} m/s\n\n"
         f"## 4. Presion de calculo de la velocidad punta\n- q_p(z) = {qp:.2f} Pa = {qp/1000:.3f} kPa\n\n"

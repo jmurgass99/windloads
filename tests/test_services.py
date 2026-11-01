@@ -65,7 +65,8 @@ def test_cc_zone_3_more_negative():
 
 def test_export_json_valid():
     res = export_to(ExportInput(target="json", height_m=30, width_m=20,
-                                n_stories=5))
+                                n_stories=5,
+                                pressures_per_story=[0.6, 0.7, 0.75, 0.8, 0.85]))
     import json
     parsed = json.loads(res.content)
     assert "stories" in parsed
@@ -74,7 +75,7 @@ def test_export_json_valid():
 
 def test_export_csv_has_header():
     res = export_to(ExportInput(target="csv", height_m=30, width_m=20,
-                                n_stories=3))
+                                n_stories=3, pressures_per_story=[0.6, 0.7, 0.8]))
     assert "story,z_m,pressure_kPa" in res.content
 
 

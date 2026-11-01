@@ -189,10 +189,11 @@ def asce7_cc_pressure(zone: str,
 # Tuples are (cpe,1, cpe,10).
 # =========================================================================
 _EC1_CPE_WALLS: dict[str, tuple[float, float]] = {
-    # Vertical walls — values for h/d > 1 (worst case envelope)
-    "A": (-1.4, -1.2),    # side wall, edge strip
-    "B": (-1.1, -0.8),    # side wall, middle strip
-    "C": (-0.5, -0.5),    # side wall, beyond 2·e from windward edge
+    # Vertical walls, EN 1991-1-4 Table 7.1 — h/d = 1 row (E is -0.7 at
+    # h/d = 5 and -0.3 at h/d <= 0.25; use pressure.ec1_cpe_walls for that)
+    "A": (-1.4, -1.2),    # side wall, first e/5 from the windward edge
+    "B": (-1.1, -0.8),    # side wall, next 4e/5
+    "C": (-0.5, -0.5),    # side wall, beyond e
     "D": (1.0, 0.8),      # windward
     "E": (-0.5, -0.5),    # leeward
 }
@@ -388,7 +389,7 @@ class ComponentsAndCladding:
                         z, "monoslope_roof", A, GCp_pos, GCp_neg,
                         self.qh_or_qp, self.enclosure))
         else:
-            # EC1 §7.2.3 monopitch — reuse Tab. 7.3a values via helper
+            # EC1 §7.2.4 monopitch — Table 7.3a, θ = 0°, suction branch
             for A in A_eff_list:
                 for z in ("F", "G", "H"):
                     cpe = ec1_monopitch_cpe(theta_deg, z, A)
@@ -742,53 +743,116 @@ def parapet_pressure(h_parapet: float,
 
 
 # =========================================================================
-# EN 1991-1-4 §7.2.4 — Duopitch (gable) roof, Tables 7.4a (wind ⊥ ridge,
-# θ=0°) and 7.4b (wind ∥ ridge). Conservative envelope of both directions.
-# Zones F (windward corner), G (windward edge), H (windward middle),
-# I (leeward middle), J (leeward edge near ridge).
-# FIXME: verify cpe,1 / cpe,10 values against EN 1991-1-4 Tables 7.4a/b
+# EN 1991-1-4 §7.2.5 — Duopitch roofs, Table 7.4a (wind θ = 0°) and
+# Table 7.4b (wind θ = 90°); §7.2.4 — Monopitch roofs, Table 7.3a (θ = 0°
+# and θ = 180°). Recommended values, positive pitch angles 5° to 75°.
+#
+# Each entry is (cpe,10, cpe,1); where the table gives a single value it is
+# used for both. At θ = 0° the tables give a suction branch ("neg") and a
+# pressure branch ("pos") for 5° to 45°; for zones or pitches with a single
+# value both branches carry it. Values transcribed from EN 1991-1-4:2005+A1:2010
+# pages 42 and 45-46. Before 1.2.0 these tables were an unverified mixture
+# (e.g. duopitch 15° F = -1.3/-2.0, which is the θ = 90° value, and 45°
+# F = 0.0 → +0.7 between 1 and 10 m², mixing the two branches).
 # =========================================================================
-_EC1_CPE_GABLE: dict[float, dict[str, tuple[float, float]]] = {
-    # pitch in degrees: zone -> (cpe,1, cpe,10)
-    5.0:  {"F": (-2.5, -1.7), "G": (-2.0, -1.2), "H": (-0.8, -0.6),
-           "I": (-0.6, -0.6), "J": (-1.0, -0.6)},
-    15.0: {"F": (-2.0, -1.3), "G": (-1.5, -1.0), "H": (-0.5, -0.4),
-           "I": (-0.5, -0.4), "J": (-1.5, -1.0)},
-    30.0: {"F": (-1.5, -0.9), "G": (-1.0, -0.7), "H": (-0.3, -0.2),
-           "I": (-0.4, -0.4), "J": (-1.5, -1.0)},
-    45.0: {"F": (0.0, 0.7),   "G": (0.0, 0.6),   "H": (0.0, 0.4),
-           "I": (-0.3, -0.3), "J": (-0.5, -0.4)},
-    60.0: {"F": (0.8, 0.7),   "G": (0.8, 0.7),   "H": (0.8, 0.7),
-           "I": (-0.2, -0.2), "J": (-0.3, -0.3)},
-    75.0: {"F": (0.8, 0.8),   "G": (0.8, 0.8),   "H": (0.8, 0.8),
-           "I": (-0.2, -0.2), "J": (-0.3, -0.3)},
+_EC1_DUO_0 = {
+    # pitch: zone: {"neg": (cpe10, cpe1), "pos": (cpe10, cpe1)}
+    5.0: {"F": {"neg": (-1.7, -2.5), "pos": (0.0, 0.0)},
+          "G": {"neg": (-1.2, -2.0), "pos": (0.0, 0.0)},
+          "H": {"neg": (-0.6, -1.2), "pos": (0.0, 0.0)},
+          "I": {"neg": (-0.6, -0.6), "pos": (-0.6, -0.6)},
+          "J": {"neg": (-0.6, -0.6), "pos": (0.2, 0.2)}},
+    15.0: {"F": {"neg": (-0.9, -2.0), "pos": (0.2, 0.2)},
+           "G": {"neg": (-0.8, -1.5), "pos": (0.2, 0.2)},
+           "H": {"neg": (-0.3, -0.3), "pos": (0.2, 0.2)},
+           "I": {"neg": (-0.4, -0.4), "pos": (0.0, 0.0)},
+           "J": {"neg": (-1.0, -1.5), "pos": (0.0, 0.0)}},
+    30.0: {"F": {"neg": (-0.5, -1.5), "pos": (0.7, 0.7)},
+           "G": {"neg": (-0.5, -1.5), "pos": (0.7, 0.7)},
+           "H": {"neg": (-0.2, -0.2), "pos": (0.4, 0.4)},
+           "I": {"neg": (-0.4, -0.4), "pos": (0.0, 0.0)},
+           "J": {"neg": (-0.5, -0.5), "pos": (0.0, 0.0)}},
+    45.0: {"F": {"neg": (0.0, 0.0), "pos": (0.7, 0.7)},
+           "G": {"neg": (0.0, 0.0), "pos": (0.7, 0.7)},
+           "H": {"neg": (0.0, 0.0), "pos": (0.6, 0.6)},
+           "I": {"neg": (-0.2, -0.2), "pos": (0.0, 0.0)},
+           "J": {"neg": (-0.3, -0.3), "pos": (0.0, 0.0)}},
+    60.0: {"F": {"neg": (0.7, 0.7), "pos": (0.7, 0.7)},
+           "G": {"neg": (0.7, 0.7), "pos": (0.7, 0.7)},
+           "H": {"neg": (0.7, 0.7), "pos": (0.7, 0.7)},
+           "I": {"neg": (-0.2, -0.2), "pos": (-0.2, -0.2)},
+           "J": {"neg": (-0.3, -0.3), "pos": (-0.3, -0.3)}},
+    75.0: {"F": {"neg": (0.8, 0.8), "pos": (0.8, 0.8)},
+           "G": {"neg": (0.8, 0.8), "pos": (0.8, 0.8)},
+           "H": {"neg": (0.8, 0.8), "pos": (0.8, 0.8)},
+           "I": {"neg": (-0.2, -0.2), "pos": (-0.2, -0.2)},
+           "J": {"neg": (-0.3, -0.3), "pos": (-0.3, -0.3)}},
+}
+
+_EC1_DUO_90 = {
+    # pitch: zone: (cpe10, cpe1) — Table 7.4b (zones F, G, H, I)
+    5.0: {"F": (-1.6, -2.2), "G": (-1.3, -2.0), "H": (-0.7, -1.2), "I": (-0.6, -0.6)},
+    15.0: {"F": (-1.3, -2.0), "G": (-1.3, -2.0), "H": (-0.6, -1.2), "I": (-0.5, -0.5)},
+    30.0: {"F": (-1.1, -1.5), "G": (-1.4, -2.0), "H": (-0.8, -1.2), "I": (-0.5, -0.5)},
+    45.0: {"F": (-1.1, -1.5), "G": (-1.4, -2.0), "H": (-0.9, -1.2), "I": (-0.5, -0.5)},
+    60.0: {"F": (-1.1, -1.5), "G": (-1.2, -2.0), "H": (-0.8, -1.0), "I": (-0.5, -0.5)},
+    75.0: {"F": (-1.1, -1.5), "G": (-1.2, -2.0), "H": (-0.8, -1.0), "I": (-0.5, -0.5)},
+}
+
+_EC1_MONO_0 = {
+    # Table 7.3a, θ = 0° (zones F, G, H)
+    5.0: {"F": {"neg": (-1.7, -2.5), "pos": (0.0, 0.0)},
+          "G": {"neg": (-1.2, -2.0), "pos": (0.0, 0.0)},
+          "H": {"neg": (-0.6, -1.2), "pos": (0.0, 0.0)}},
+    15.0: {"F": {"neg": (-0.9, -2.0), "pos": (0.2, 0.2)},
+           "G": {"neg": (-0.8, -1.5), "pos": (0.2, 0.2)},
+           "H": {"neg": (-0.3, -0.3), "pos": (0.2, 0.2)}},
+    30.0: {"F": {"neg": (-0.5, -1.5), "pos": (0.7, 0.7)},
+           "G": {"neg": (-0.5, -1.5), "pos": (0.7, 0.7)},
+           "H": {"neg": (-0.2, -0.2), "pos": (0.4, 0.4)}},
+    45.0: {"F": {"neg": (0.0, 0.0), "pos": (0.7, 0.7)},
+           "G": {"neg": (0.0, 0.0), "pos": (0.7, 0.7)},
+           "H": {"neg": (0.0, 0.0), "pos": (0.6, 0.6)}},
+    60.0: {"F": {"neg": (0.7, 0.7), "pos": (0.7, 0.7)},
+           "G": {"neg": (0.7, 0.7), "pos": (0.7, 0.7)},
+           "H": {"neg": (0.7, 0.7), "pos": (0.7, 0.7)}},
+    75.0: {"F": {"neg": (0.8, 0.8), "pos": (0.8, 0.8)},
+           "G": {"neg": (0.8, 0.8), "pos": (0.8, 0.8)},
+           "H": {"neg": (0.8, 0.8), "pos": (0.8, 0.8)}},
+}
+
+_EC1_MONO_180 = {
+    # Table 7.3a, θ = 180° (zones F, G, H)
+    5.0: {"F": (-2.3, -2.5), "G": (-1.3, -2.0), "H": (-0.8, -1.2)},
+    15.0: {"F": (-2.5, -2.8), "G": (-1.3, -2.0), "H": (-0.9, -1.2)},
+    30.0: {"F": (-1.1, -2.3), "G": (-0.8, -1.5), "H": (-0.8, -0.8)},
+    45.0: {"F": (-0.6, -1.3), "G": (-0.5, -0.5), "H": (-0.7, -0.7)},
+    60.0: {"F": (-0.5, -1.0), "G": (-0.5, -0.5), "H": (-0.5, -0.5)},
+    75.0: {"F": (-0.5, -1.0), "G": (-0.5, -0.5), "H": (-0.5, -0.5)},
 }
 
 
-def _ec1_interp_pitch(theta: float,
-                      table: dict[float, dict[str, tuple[float, float]]],
-                      zone: str) -> tuple[float, float]:
+def _ec1_pitch_pair(theta: float, table: dict, zone: str,
+                    branch: str | None = None) -> tuple[float, float]:
+    """(cpe10, cpe1) linearly interpolated in pitch; clamped to 5°-75°."""
+    def _get(pitch: float) -> tuple[float, float]:
+        v = table[pitch][zone]
+        return v[branch] if branch is not None else v
     pitches = sorted(table.keys())
     if theta <= pitches[0]:
-        return table[pitches[0]][zone]
+        return _get(pitches[0])
     if theta >= pitches[-1]:
-        return table[pitches[-1]][zone]
+        return _get(pitches[-1])
     for p_lo, p_hi in zip(pitches[:-1], pitches[1:]):
         if p_lo <= theta <= p_hi:
             t = (theta - p_lo) / (p_hi - p_lo)
-            a1 = table[p_lo][zone][0] + t * (table[p_hi][zone][0]
-                                              - table[p_lo][zone][0])
-            a10 = table[p_lo][zone][1] + t * (table[p_hi][zone][1]
-                                               - table[p_lo][zone][1])
-            return a1, a10
-    return table[pitches[-1]][zone]
+            lo, hi = _get(p_lo), _get(p_hi)
+            return (lo[0] + t * (hi[0] - lo[0]), lo[1] + t * (hi[1] - lo[1]))
+    return _get(pitches[-1])
 
 
-def ec1_gable_cpe(theta_deg: float, zone: str, A: float) -> float:
-    """cpe for gable roof zones F,G,H,I,J — EN 1991-1-4 Tab. 7.4a/b."""
-    if zone not in ("F", "G", "H", "I", "J"):
-        raise ValueError(f"Zone '{zone}' invalid for EC1 gable roof.")
-    cpe1, cpe10 = _ec1_interp_pitch(theta_deg, _EC1_CPE_GABLE, zone)
+def _ec1_area_interp(cpe10: float, cpe1: float, A: float) -> float:
+    """EN 1991-1-4 Figure 7.2: cpe = cpe,1 − (cpe,1 − cpe,10)·log10(A)."""
     if A <= 1.0:
         return cpe1
     if A >= 10.0:
@@ -796,29 +860,54 @@ def ec1_gable_cpe(theta_deg: float, zone: str, A: float) -> float:
     return cpe1 - (cpe1 - cpe10) * math.log10(A)
 
 
-# =========================================================================
-# EN 1991-1-4 §7.2.3 — Monopitch roof (Tab. 7.3a, wind θ=0°)
-# Conservative envelope only — zones F, G, H.
-# FIXME: verify cpe values against EN 1991-1-4 Tab. 7.3a
-# =========================================================================
-_EC1_CPE_MONO: dict[float, dict[str, tuple[float, float]]] = {
-    5.0:  {"F": (-2.5, -1.7), "G": (-2.0, -1.2), "H": (-1.2, -0.6)},
-    15.0: {"F": (-2.4, -1.3), "G": (-1.6, -1.3), "H": (-0.7, -0.4)},
-    30.0: {"F": (-1.5, -1.1), "G": (-1.3, -0.8), "H": (-0.4, -0.2)},
-    45.0: {"F": (0.0, 0.7),   "G": (0.0, 0.7),   "H": (0.0, 0.6)},
-}
+def ec1_gable_cpe(theta_deg: float, zone: str, A: float,
+                  wind_dir: int = 0, case: str = "neg") -> float:
+    """
+    cpe for duopitch roofs, EN 1991-1-4 Tables 7.4a (θ = 0°, zones F-J) and
+    7.4b (θ = 90°, zones F-I), positive pitch 5° to 75° (clamped outside),
+    linear interpolation in pitch and log interpolation in area.
+
+    wind_dir : 0 (Table 7.4a) or 90 (Table 7.4b).
+    case     : θ = 0° only — 'neg' (suction branch, default) or 'pos'
+               (pressure branch); Note 1 to Table 7.4a asks for both.
+    Negative pitches and the flat-roof rule for -5° < α < 5° are not covered.
+    """
+    if wind_dir == 0:
+        if zone not in ("F", "G", "H", "I", "J"):
+            raise ValueError(f"Zone '{zone}' invalid for EC1 duopitch roof (θ=0°).")
+        if case not in ("neg", "pos"):
+            raise ValueError("case must be 'neg' or 'pos'")
+        cpe10, cpe1 = _ec1_pitch_pair(theta_deg, _EC1_DUO_0, zone, case)
+    elif wind_dir == 90:
+        if zone not in ("F", "G", "H", "I"):
+            raise ValueError(f"Zone '{zone}' invalid for EC1 duopitch roof (θ=90°).")
+        cpe10, cpe1 = _ec1_pitch_pair(theta_deg, _EC1_DUO_90, zone)
+    else:
+        raise ValueError("wind_dir must be 0 or 90 for duopitch roofs")
+    return _ec1_area_interp(cpe10, cpe1, A)
 
 
-def ec1_monopitch_cpe(theta_deg: float, zone: str, A: float) -> float:
-    """cpe for monopitch roof per EN 1991-1-4 Tab. 7.3a (wind θ=0°)."""
+def ec1_monopitch_cpe(theta_deg: float, zone: str, A: float,
+                      wind_dir: int = 0, case: str = "neg") -> float:
+    """
+    cpe for monopitch roofs, EN 1991-1-4 Table 7.3a (zones F, G, H for
+    θ = 0° and θ = 180°), positive pitch 5° to 75° (clamped outside).
+
+    wind_dir : 0 (wind on the low eave) or 180 (wind on the high eave).
+    case     : θ = 0° only — 'neg' (suction branch, default) or 'pos'.
+    Table 7.3b (θ = 90°, zones Fup/Flow/G/H/I) is not implemented.
+    """
     if zone not in ("F", "G", "H"):
         raise ValueError(f"Zone '{zone}' invalid for EC1 monopitch roof.")
-    cpe1, cpe10 = _ec1_interp_pitch(theta_deg, _EC1_CPE_MONO, zone)
-    if A <= 1.0:
-        return cpe1
-    if A >= 10.0:
-        return cpe10
-    return cpe1 - (cpe1 - cpe10) * math.log10(A)
+    if wind_dir == 0:
+        if case not in ("neg", "pos"):
+            raise ValueError("case must be 'neg' or 'pos'")
+        cpe10, cpe1 = _ec1_pitch_pair(theta_deg, _EC1_MONO_0, zone, case)
+    elif wind_dir == 180:
+        cpe10, cpe1 = _ec1_pitch_pair(theta_deg, _EC1_MONO_180, zone)
+    else:
+        raise ValueError("wind_dir must be 0 or 180 for monopitch roofs")
+    return _ec1_area_interp(cpe10, cpe1, A)
 
 
 # =========================================================================

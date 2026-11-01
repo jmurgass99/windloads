@@ -1,15 +1,17 @@
 """
-EN 1991-1-4 Anexo F — Fenómenos aeroelásticos.
+Fenómenos aeroelásticos — criterios simplificados.
 
-Implementa criterios simplificados de:
-- Galloping (Den Hartog) §F.2
-- Divergencia torsional de placas / puentes §F.4
-- Flutter 2-DOF (heave + pitch) con derivadas tipo Theodorsen/Scanlan §F.3
-- Lock-in de vortex shedding (rango ±20% por defecto) §E
-- Wake / buffeting de interferencia entre cilindros §F.5
-
-Las fórmulas son las del Anexo F del Eurocódigo y de Simiu & Scanlan
-"Wind Effects on Structures" (referencia normativa habitual del EC1).
+Referencias en EN 1991-1-4:2005+A1:2010 (Anexo E; el Anexo F trata las
+características dinámicas, no estos fenómenos — hasta 1.2.0 este docstring
+citaba §F.2-§F.5):
+- Galloping (Den Hartog): E.2, Expresión (E.18), con el signo de Den Hartog
+  (ver galloping_critical_velocity); para EN usar vortex_shedding.check_galloping.
+- Divergencia torsional de placas / tableros: E.4.3, Expresión (E.24).
+- Flutter 2-DOF: modelo didáctico NO válido (E.4.4 solo da criterios y remite
+  a especialista).
+- Lock-in de vortex shedding: banda ±20 % propia del módulo (no de E.1).
+- Interferencia entre cilindros: factor propio del módulo, sin referencia
+  (E.3 trata el galope de interferencia con otra formulación).
 """
 from __future__ import annotations
 
@@ -31,16 +33,23 @@ def galloping_critical_velocity(
     delta: float = 0.05,
 ) -> float:
     """
-    Velocidad crítica de galloping (Den Hartog, EN 1991-1-4 Eq. E.18 / F.2).
+    Velocidad crítica de galloping con el criterio de Den Hartog.
 
-        Vcr = 2 · Sc · fn · b / aG
+        Vcr = 2 · Sc · fn · b / |H|,   H = dCL/dα + CD  (H < 0 ⇒ inestable)
 
     donde:
         Sc = 2·m·δ / (ρ·b²)          (número de Scruton)
-        aG = -c_a_prime              (factor Den Hartog: dCL/dα + CD)
 
-    Para perfiles ESTABLES (aG ≥ 0, e.g. cilindro circular dCL/dα≈0,
-    CD≈1 ⇒ aG=2) NO existe galloping → se devuelve +inf.
+    ATENCIÓN AL SIGNO: ``c_a_prime`` es el coeficiente de Den Hartog H, que
+    es NEGATIVO cuando hay galloping. El factor a_G de la Tabla E.7 de
+    EN 1991-1-4 tiene el signo contrario (positivo = propenso a galloping):
+    pasar aquí un a_G de la tabla (p. ej. 1,2 de un cuadrado) devuelve +inf,
+    es decir «estable», que es la conclusión opuesta. Para EN 1991-1-4 usa
+    ``windloads.vortex_shedding.check_galloping(aG=...)``, que aplica la
+    Expresión (E.18) y el criterio (E.19).
+
+    Para perfiles ESTABLES (H ≥ 0, p. ej. cilindro circular dCL/dα ≈ 0,
+    CD ≈ 1) NO existe galloping → se devuelve +inf.
 
     Parámetros
     ----------
@@ -48,7 +57,8 @@ def galloping_critical_velocity(
     fn        : frecuencia natural [Hz]
     b         : dimensión característica transversal [m]
     rho_air   : densidad del aire [kg/m³]
-    c_a_prime : coeficiente Den Hartog (dCL/dα + CD). Negativo ⇒ inestable.
+    c_a_prime : coeficiente de Den Hartog H = dCL/dα + CD. Negativo ⇒ inestable.
+                (NO es el a_G de la Tabla E.7, que tiene el signo opuesto.)
     sc        : Scruton dado por el usuario; si None se calcula con δ.
     delta     : decremento logarítmico (sólo si sc es None).
 
@@ -64,10 +74,10 @@ def galloping_critical_velocity(
     if sc is None:
         sc = 2.0 * m * delta / (rho_air * b * b)
 
-    # Convención EN 1991-1-4 / Den Hartog:
-    #   c_a_prime = aG = dCL/dα + CD
-    #   aG > 0 ⇒ perfil ESTABLE (no hay galloping) → Vcr = +inf
-    #   aG < 0 ⇒ perfil INESTABLE; Vcr = 2·Sc·fn·b / |aG|
+    # Convención de Den Hartog (no la de la Tabla E.7):
+    #   c_a_prime = H = dCL/dα + CD
+    #   H > 0 ⇒ perfil ESTABLE (no hay galloping) → Vcr = +inf
+    #   H < 0 ⇒ perfil INESTABLE; Vcr = 2·Sc·fn·b / |H|
     aG = c_a_prime
     if aG >= 0:
         return math.inf
@@ -75,7 +85,7 @@ def galloping_critical_velocity(
 
 
 # ----------------------------------------------------------------------
-# 2) Divergencia torsional — §F.4
+# 2) Divergencia torsional — E.4.3 (E.24)
 # ----------------------------------------------------------------------
 def divergence_critical_velocity(
     EI: float,
@@ -85,13 +95,15 @@ def divergence_critical_velocity(
     B: float,
 ) -> float:
     """
-    Velocidad crítica de divergencia torsional para placas/puentes
-    (EN 1991-1-4 §F.4).
+    Velocidad crítica de divergencia torsional para placas/tableros
+    (EN 1991-1-4 E.4.3, Expresión E.24):
 
-        V_div = sqrt( 2·K_alpha / (ρ · B² · dCM/dα) )
+        V_div = sqrt( 2·k_Θ / (ρ · d² · dc_M/dΘ) )
 
-    con K_alpha = EI / L  (rigidez torsional equivalente por unidad de
-    longitud para una viga simplemente apoyada — caso tabulado del EC1).
+    donde k_Θ es la rigidez a torsión y d la profundidad en la dirección del
+    viento. La función toma k_Θ = EI / L (el cociente de sus dos primeros
+    argumentos), una conversión propia sin respaldo en la norma: para aplicar
+    E.24 pasa EI = k_Θ y L = 1. ``B`` hace el papel de d.
 
     Parámetros
     ----------
@@ -111,7 +123,7 @@ def divergence_critical_velocity(
 
 
 # ----------------------------------------------------------------------
-# 3) Flutter 2-DOF (heave + pitch) — Theodorsen / Scanlan §F.3
+# 3) Flutter 2-DOF (heave + pitch) — modelo didáctico, no normativo
 # ----------------------------------------------------------------------
 def flutter_2dof(
     m: float,
@@ -124,6 +136,12 @@ def flutter_2dof(
     rho: float,
 ) -> Tuple[float, complex]:
     """
+    NO ES UN ANÁLISIS DE FLUTTER VÁLIDO: modelo didáctico sin acoplamiento
+    aerodinámico (Bcoef ignora los términos aeroelásticos) y con
+    V_f = b·ω_f·√μ, que no es una fórmula de flutter publicada. No usar para
+    puentes ni placas; para eso hacen falta derivadas de flameo medidas en
+    túnel (Scanlan) o, como mínimo, la fórmula empírica de Selberg.
+
     Análisis de flutter 2-DOF (heave h + pitch α) — método del determinante.
 
     Sistema (sin amortiguamiento estructural, modelo cuasi-estacionario
@@ -228,7 +246,7 @@ def lock_in_range(
 
 
 # ----------------------------------------------------------------------
-# 5) Wake buffeting — §F.5
+# 5) Wake buffeting — factor propio, sin referencia normativa
 # ----------------------------------------------------------------------
 @dataclass(frozen=True)
 class WakeBuffetingResult:
@@ -245,7 +263,9 @@ def wake_buffeting(
 ) -> WakeBuffetingResult:
     """
     Estimación simplificada del factor de interferencia entre dos
-    cilindros (§F.5 EN 1991-1-4).
+    cilindros. Factores propios del módulo, sin referencia normativa (EN
+    1991-1-4 E.3 trata el galope de interferencia con
+    v_CIG = 3,5·n·b·√((a/b)·Sc/a_IG), a_IG = 3, para a/b < 3).
 
         a/b < 3   → fuerte interferencia (crítica)
         3 ≤ a/b ≤ 20 → buffeting moderado, factor decreciente
