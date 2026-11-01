@@ -7,24 +7,6 @@ families:
   * Chile        — NCh 432.Of2010 (mapa de viento básico Anexo A)
   * Colombia     — NSR-10 Título B §B.6.4 (figura B.6.4-1)
   * España (UE)  — CTE DB-SE-AE 2009 §3.3 / EN 1991-1-4 Anexo N
-
-The Vb stored here is the *basic wind speed* (3 s or 10 min gust
-depending on the code; documented in the entry's ``averaging`` field)
-at 10 m height, return period 50 years, terrain category II.
-
-Source URLs :
-  * Chile     https://www.inn.cl/nch432
-  * Colombia  https://www.minvivienda.gov.co/normatividad/nsr-10
-  * España    https://www.codigotecnico.org/  (DB SE-AE)
-  * Eurocode  https://eurocodes.jrc.ec.europa.eu/
-
-Status     : 30 cities per country (90 total) hard-coded. Values
-             cross-checked against published code maps; minor
-             rounding to 1 m/s.
-
-Note       : This complements the legacy ``vb_map.py`` (kept for
-             backward compatibility) by adding a country/code aware
-             lookup ``vb_for(city, country, code)``.
 """
 from __future__ import annotations
 
@@ -79,39 +61,38 @@ _CHILE: list[VbEntry] = [
 ]
 
 # ----------------------------------------------------------- Colombia (30)
+# Sincronizado con las regiones de amenaza eólica NSR-10 Figura B.6.4-1
 _COLOMBIA: list[VbEntry] = [
-    VbEntry("Bogota",        "CO", "NSR-10", 26.0, "3 s gust"),
-    VbEntry("Medellin",      "CO", "NSR-10", 26.0, "3 s gust"),
-    VbEntry("Cali",          "CO", "NSR-10", 33.0, "3 s gust"),
-    VbEntry("Barranquilla",  "CO", "NSR-10", 40.0, "3 s gust",
-            "Zona costera Caribe."),
-    VbEntry("Cartagena",     "CO", "NSR-10", 36.0, "3 s gust"),
-    VbEntry("Bucaramanga",   "CO", "NSR-10", 28.0, "3 s gust"),
-    VbEntry("Pereira",       "CO", "NSR-10", 26.0, "3 s gust"),
-    VbEntry("Manizales",     "CO", "NSR-10", 26.0, "3 s gust"),
-    VbEntry("Ibague",        "CO", "NSR-10", 26.0, "3 s gust"),
-    VbEntry("Santa Marta",   "CO", "NSR-10", 36.0, "3 s gust"),
-    VbEntry("Pasto",         "CO", "NSR-10", 26.0, "3 s gust"),
-    VbEntry("Cucuta",        "CO", "NSR-10", 28.0, "3 s gust"),
-    VbEntry("Villavicencio", "CO", "NSR-10", 28.0, "3 s gust"),
-    VbEntry("Monteria",      "CO", "NSR-10", 33.0, "3 s gust"),
-    VbEntry("Valledupar",    "CO", "NSR-10", 33.0, "3 s gust"),
-    VbEntry("Sincelejo",     "CO", "NSR-10", 33.0, "3 s gust"),
-    VbEntry("Riohacha",      "CO", "NSR-10", 40.0, "3 s gust"),
-    VbEntry("Quibdo",        "CO", "NSR-10", 28.0, "3 s gust"),
-    VbEntry("Armenia",       "CO", "NSR-10", 26.0, "3 s gust"),
-    VbEntry("Popayan",       "CO", "NSR-10", 26.0, "3 s gust"),
-    VbEntry("Tunja",         "CO", "NSR-10", 26.0, "3 s gust"),
-    VbEntry("Florencia",     "CO", "NSR-10", 26.0, "3 s gust"),
-    VbEntry("Neiva",         "CO", "NSR-10", 26.0, "3 s gust"),
-    VbEntry("Yopal",         "CO", "NSR-10", 28.0, "3 s gust"),
-    VbEntry("Mocoa",         "CO", "NSR-10", 26.0, "3 s gust"),
-    VbEntry("Arauca",        "CO", "NSR-10", 28.0, "3 s gust"),
-    VbEntry("Leticia",       "CO", "NSR-10", 26.0, "3 s gust"),
-    VbEntry("Tumaco",        "CO", "NSR-10", 30.0, "3 s gust"),
-    VbEntry("Buenaventura",  "CO", "NSR-10", 30.0, "3 s gust"),
-    VbEntry("San Andres",    "CO", "NSR-10", 50.0, "3 s gust",
-            "Isla Caribe — huracanes."),
+    VbEntry("Bogota",        "CO", "NSR-10", 28.0, "3 s gust", "Región 3 (100 km/h)"),
+    VbEntry("Medellin",      "CO", "NSR-10", 28.0, "3 s gust", "Región 3 (100 km/h)"),
+    VbEntry("Cali",          "CO", "NSR-10", 33.0, "3 s gust", "Valle / Región 4"),
+    VbEntry("Barranquilla",  "CO", "NSR-10", 36.0, "3 s gust", "Región 5 — Costa Caribe (130 km/h)"),
+    VbEntry("Cartagena",     "CO", "NSR-10", 36.0, "3 s gust", "Región 5 — Costa Caribe (130 km/h)"),
+    VbEntry("Bucaramanga",   "CO", "NSR-10", 33.0, "3 s gust", "Región 4 (120 km/h)"),
+    VbEntry("Pereira",       "CO", "NSR-10", 28.0, "3 s gust", "Región 3 (100 km/h)"),
+    VbEntry("Manizales",     "CO", "NSR-10", 28.0, "3 s gust", "Región 3 (100 km/h)"),
+    VbEntry("Ibague",        "CO", "NSR-10", 28.0, "3 s gust", "Región 3 (100 km/h)"),
+    VbEntry("Santa Marta",   "CO", "NSR-10", 36.0, "3 s gust", "Región 5 — Costa Caribe (130 km/h)"),
+    VbEntry("Pasto",         "CO", "NSR-10", 22.0, "3 s gust", "Región 2 (80 km/h)"),
+    VbEntry("Cucuta",        "CO", "NSR-10", 33.0, "3 s gust", "Región 4 (120 km/h)"),
+    VbEntry("Villavicencio", "CO", "NSR-10", 28.0, "3 s gust", "Región 3 (100 km/h)"),
+    VbEntry("Monteria",      "CO", "NSR-10", 33.0, "3 s gust", "Región 4 (120 km/h)"),
+    VbEntry("Valledupar",    "CO", "NSR-10", 33.0, "3 s gust", "Región 4 (120 km/h)"),
+    VbEntry("Sincelejo",     "CO", "NSR-10", 33.0, "3 s gust", "Región 4 (120 km/h)"),
+    VbEntry("Riohacha",      "CO", "NSR-10", 36.0, "3 s gust", "Región 5 — Guajira (130 km/h)"),
+    VbEntry("Quibdo",        "CO", "NSR-10", 28.0, "3 s gust", "Región 3 (100 km/h)"),
+    VbEntry("Armenia",       "CO", "NSR-10", 28.0, "3 s gust", "Región 3 (100 km/h)"),
+    VbEntry("Popayan",       "CO", "NSR-10", 28.0, "3 s gust", "Región 3 (100 km/h)"),
+    VbEntry("Tunja",         "CO", "NSR-10", 28.0, "3 s gust", "Región 3 (100 km/h)"),
+    VbEntry("Florencia",     "CO", "NSR-10", 22.0, "3 s gust", "Región 2 (80 km/h)"),
+    VbEntry("Neiva",         "CO", "NSR-10", 28.0, "3 s gust", "Región 3 (100 km/h)"),
+    VbEntry("Yopal",         "CO", "NSR-10", 33.0, "3 s gust", "Región 4 (120 km/h)"),
+    VbEntry("Mocoa",         "CO", "NSR-10", 22.0, "3 s gust", "Región 2 (80 km/h)"),
+    VbEntry("Arauca",        "CO", "NSR-10", 33.0, "3 s gust", "Región 4 (120 km/h)"),
+    VbEntry("Leticia",       "CO", "NSR-10", 17.0, "3 s gust", "Región 1 — Amazonía (60 km/h)"),
+    VbEntry("Tumaco",        "CO", "NSR-10", 33.0, "3 s gust", "Región 4 (120 km/h)"),
+    VbEntry("Buenaventura",  "CO", "NSR-10", 33.0, "3 s gust", "Región 4 (120 km/h)"),
+    VbEntry("San Andres",    "CO", "NSR-10", 50.0, "3 s gust", "Región 6 — Insular huracanes (180 km/h)"),
 ]
 
 # ----------------------------------------------------------- Espana (30)
@@ -163,11 +144,7 @@ def _norm(s: str) -> str:
 def vb_for(city: str,
            country: str | None = None,
            code: str | None = None) -> float | None:
-    """Return Vb [m/s] for ``city`` (optionally filtered by country/code).
-
-    Lookup is accent- and case-insensitive. Returns ``None`` if no
-    entry matches.
-    """
+    """Return Vb [m/s] for ``city`` (optionally filtered by country/code)."""
     target = _norm(city)
     country_u = country.upper() if country else None
     for e in _VB_ATLAS:

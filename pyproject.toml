@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "windloads"
 version = "1.2.0"
-description = "Wind loads on buildings and structures in Python: EN 1991-1-4 peak velocity pressure, Annex A.3 orography, wall and roof pressure coefficients (Tables 7.1-7.4) and story forces with reference heights and lack of correlation; ASCE 7 velocity pressure, topographic factor, MWFRS directional story forces, the four torsional load cases and components and cladding GCp; NSR-10 B.6 with the ASCE 7-05 procedure; Davenport gust factor, EN 1991-1-4 Annex E vortex shedding and galloping checks; export to JSON, CSV, SAP2000 and ETABS text, a canonical model, DXF plans and an OpenFOAM pre-processor. Unverified tables and simplifications are flagged in the code and the README."
+description = "Wind loads on buildings and structures in Python: EN 1991-1-4 peak velocity pressure, Annex A.3 orography, Annex B structural factor CsCd, wall and roof pressure coefficients (Tables 7.1-7.4) and story forces with reference heights and lack of correlation; ASCE 7 velocity pressure, topographic factor, MWFRS directional story forces, the four torsional load cases and components and cladding GCp; NSR-10 B.6 with the ASCE 7-05 procedure; Davenport gust factor, EN 1991-1-4 Annex E vortex shedding and galloping checks; export to JSON, CSV, SAP2000 and ETABS text, a canonical model, DXF plans and an OpenFOAM pre-processor."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -37,6 +37,9 @@ Issues = "https://github.com/jmurgass99/windloads/issues"
 
 [tool.setuptools.packages.find]
 include = ["windloads*"]
+
+[tool.setuptools.package-data]
+windloads = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

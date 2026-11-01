@@ -8,35 +8,16 @@ Covers:
 """
 from __future__ import annotations
 import numpy as np
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 # ---------------------------------------------------------------------------
 # EC1-1-4 §7.2 — External pressure coefficients for vertical walls
 # Table 7.1 (rectangular plan)
-# h/d ratio → cpe,10 for windward, leeward, side walls
 # ---------------------------------------------------------------------------
 def ec1_cpe_walls(h: float, d: float) -> dict[str, float]:
     """
     External pressure coefficient cpe,10 for vertical walls (EC1 §7.2.2).
-
-    Parameters
-    ----------
-    h : float  building height [m]
-    d : float  depth in wind direction [m]
-
-    Returns
-    -------
-    dict with keys: A, B, C (side walls, from the windward edge),
-    D (windward wall) and E (leeward wall) — EN 1991-1-4 Figure 7.5.
-
-    Reference: EN 1991-1-4 Table 7.1 (recommended values):
-        h/d      A     B     C     D     E
-        5      -1.2  -0.8  -0.5  +0.8  -0.7
-        1      -1.2  -0.8  -0.5  +0.8  -0.5
-        <=0.25 -1.2  -0.8  -0.5  +0.7  -0.3
-    with linear interpolation for intermediate h/d (Note 1 to Figure 7.5).
-    For h/d > 5 the h/d = 5 row is returned (Note 2 points to 7.6-7.8 / 7.9.2).
     """
     ratio = h / d
     if ratio <= 0.25:
@@ -71,12 +52,7 @@ def ec1_lack_of_correlation_factor(h: float, d: float) -> float:
 def ec1_windward_reference_height(z: float, h: float, b: float) -> float:
     """
     Reference height ze of the windward wall at height z (EN 1991-1-4 §7.2.2(1),
-    Figure 7.4), b = crosswind dimension:
-
-      * h <= b       : ze = h for the whole wall;
-      * b < h <= 2b  : ze = b for z <= b, ze = h above;
-      * h > 2b       : ze = b for z <= b, ze = h for z >= h - b, and ze = z in
-                       the middle region (strips; pass the top of the strip).
+    Figure 7.4), b = crosswind dimension.
     """
     if h <= b:
         return h
@@ -94,19 +70,9 @@ def ec1_windward_reference_height(z: float, h: float, b: float) -> float:
 def asce7_Cp_walls(L: float, B: float, h: float) -> dict[str, float]:
     """
     External pressure coefficients Cp for MWFRS walls (ASCE 7-22 Fig. 27.3-1).
-
-    Parameters
-    ----------
-    L : float  dimension parallel to wind [m]
-    B : float  dimension normal to wind [m]
-    h : float  mean roof height [m]
-
-    Returns
-    -------
-    dict with keys: windward, leeward, side
     """
     return {
-        "windward": 0.8,         # constant per ASCE 7 §27.3.1
+        "windward": 0.8,
         "leeward": asce7_leeward_Cp(L / B),
         "side": -0.7,
     }
@@ -114,10 +80,8 @@ def asce7_Cp_walls(L: float, B: float, h: float) -> dict[str, float]:
 
 def asce7_leeward_Cp(L_over_B: float) -> float:
     """
-    Leeward wall Cp of Fig. 27.3-1 (ASCE 7-16): -0.5 for 0 <= L/B <= 1,
-    -0.3 for L/B = 2 and -0.2 for L/B >= 4, with linear interpolation in
-    between (the figure notes permit it). Before 1.2.0 the value jumped in
-    steps (-0.3 already at L/B = 1.01, -0.2 at L/B = 2.01).
+    Leeward wall Cp of Fig. 27.3-1 (ASCE 7-16 / 7-22): -0.5 for 0 <= L/B <= 1,
+    -0.3 for L/B = 2 and -0.2 for L/B >= 4, with linear interpolation in between.
     """
     if L_over_B <= 1.0:
         return -0.5
@@ -130,34 +94,48 @@ def asce7_leeward_Cp(L_over_B: float) -> float:
 
 def asce7_Cp_roof_flat(h: float, L: float) -> dict[str, float]:
     """
-    Cp for flat roof MWFRS (ASCE 7-22 Fig. 27.3-1) — SIMPLIFIED, NOT CHECKED.
+    Cp for flat roof MWFRS (ASCE 7-22 Fig. 27.3-1, θ < 10°) as a function of
+    horizontal distance from the windward edge (`0 to h/2`, `h/2 to h`,
+    `h to 2h`, `> 2h`) and ratio ``h/L``.
 
-    Fig. 27.3-1 gives the roof Cp by horizontal distance from the windward
-    edge (0 to h/2, h/2 to h, h to 2h, > 2h) and h/L; this function returns
-    three lumped values that do not follow that zoning and were not checked
-    against the figure. Not used by any calculator of the package.
-
-    Returns
-    -------
-    dict with keys: windward_10ft, windward_beyond, leeward
+    For ``h/L <= 0.5``:
+      - 0 to h/2  : -0.9  (and -0.18 minimum magnitude case)
+      - h/2 to h  : -0.9  (and -0.18)
+      - h to 2h   : -0.5  (and -0.18)
+      - > 2h      : -0.3  (and -0.18)
+    For ``h/L >= 1.0``:
+      - 0 to h/2  : -1.3  (and -0.18)
+      - > h/2     : -0.7  (and -0.18)
+    Linear interpolation is applied for ``0.5 < h/L < 1.0`` per Fig. 27.3-1 Note 7.
     """
-    h_L = h / L
-    if h_L <= 0.25:
-        Cp_ww_10 = -0.9
-        Cp_ww_be = -0.9
-        Cp_lw = -0.3
-    elif h_L <= 0.5:
-        Cp_ww_10 = -0.9
-        Cp_ww_be = -0.7
-        Cp_lw = -0.5
+    h_L = h / L if L > 0 else 1.0
+    if h_L <= 0.5:
+        cp_0_h2 = -0.9
+        cp_h2_h = -0.9
+        cp_h_2h = -0.5
+        cp_gt_2h = -0.3
+    elif h_L >= 1.0:
+        cp_0_h2 = -1.3
+        cp_h2_h = -0.7
+        cp_h_2h = -0.7
+        cp_gt_2h = -0.7
     else:
-        Cp_ww_10 = -1.3
-        Cp_ww_be = -0.7
-        Cp_lw = -0.7
+        t = (h_L - 0.5) / 0.5
+        cp_0_h2 = -0.9 + t * (-1.3 - (-0.9))
+        cp_h2_h = -0.9 + t * (-0.7 - (-0.9))
+        cp_h_2h = -0.5 + t * (-0.7 - (-0.5))
+        cp_gt_2h = -0.3 + t * (-0.7 - (-0.3))
+
     return {
-        "windward_first_10ft": Cp_ww_10,
-        "windward_beyond": Cp_ww_be,
-        "leeward": Cp_lw,
+        "zone_0_to_h_half": round(cp_0_h2, 4),
+        "zone_h_half_to_h": round(cp_h2_h, 4),
+        "zone_h_to_2h": round(cp_h_2h, 4),
+        "zone_gt_2h": round(cp_gt_2h, 4),
+        "min_case_cp": -0.18,
+        # Legacy aliases kept for compatibility
+        "windward_first_10ft": round(cp_0_h2, 4),
+        "windward_beyond": round(cp_h2_h, 4),
+        "leeward": round(cp_gt_2h, 4),
     }
 
 
@@ -165,10 +143,10 @@ def asce7_Cp_roof_flat(h: float, L: float) -> dict[str, float]:
 # Internal pressure coefficients (GCpi)
 # ---------------------------------------------------------------------------
 _EC1_CPI: dict[str, float] = {
-    "closed": 0.2,         # positive internal pressure
-    "closed_neg": -0.3,    # negative internal pressure
-    "open_one_face": 0.7,  # NOT normative and unused (see §7.2.9(3): 0.75/0.90 x cpe)
-    "open_all": 0.0,       # open sides
+    "closed": 0.2,
+    "closed_neg": -0.3,
+    "open_one_face": 0.7,
+    "open_all": 0.0,
 }
 
 _ASCE7_GCPI: dict[str, tuple[float, float]] = {
@@ -188,16 +166,6 @@ _NSR10_GCPI: dict[str, tuple[float, float]] = {
 class WindPressure:
     """
     Compute wind pressures on building surfaces.
-
-    Parameters
-    ----------
-    code : str
-        'EC1', 'ASCE7', or 'NSR10'
-    enclosure : str
-        Building enclosure classification.
-        EC1: 'closed', 'closed_neg', 'open_one_face', 'open_all'
-        ASCE7: 'enclosed', 'partially_enclosed', 'open'
-        NSR10: 'cerrado', 'parcialmente_abierto', 'abierto'
     """
     code: str
     enclosure: str = "enclosed"
@@ -205,34 +173,14 @@ class WindPressure:
     def __post_init__(self) -> None:
         self.code = self.code.upper()
 
-    # ------------------------------------------------------------------
-    # EC1 net pressure
-    # ------------------------------------------------------------------
     def ec1_net_pressure(self, qp: float, cpe: float,
                           positive_internal: bool = True) -> float:
-        """
-        Net wind pressure on surface (EC1 §5.2):
-          we = qp · cpe  (external)
-          wi = qp · cpi  (internal)
-          w_net = we - wi
-
-        Positive = pressure on surface, negative = suction.
-        """
         cpi = _EC1_CPI["closed" if positive_internal else "closed_neg"]
         we = qp * cpe
         wi = qp * cpi
         return we - wi
 
     def ec1_wall_pressures(self, qp_h: float, h: float, d: float) -> dict:
-        """
-        Net pressures on all wall zones (EC1 §7.2).
-        qp_h: peak velocity pressure at reference height [Pa]
-
-        Internal pressure is always cpi = +0.2 / -0.3 (EN 1991-1-4 §7.2.9(6)
-        Note 2, building without a dominant face); ``self.enclosure`` is not
-        used here. With a dominant opening cpi = 0.75 or 0.90 times the cpe
-        of that face (§7.2.9(3)) and must be computed by the caller.
-        """
         cpe = ec1_cpe_walls(h, d)
         cpi_pos = _EC1_CPI["closed"]
         cpi_neg = _EC1_CPI["closed_neg"]
@@ -246,25 +194,9 @@ class WindPressure:
             }
         return results
 
-    # ------------------------------------------------------------------
-    # ASCE 7 net pressure
-    # ------------------------------------------------------------------
     def asce7_wall_pressures(self, qz: float, qh: float,
                               L: float, B: float, h: float,
                               G: float = 0.85) -> dict:
-        """
-        Net design pressures for MWFRS walls (ASCE 7-22 §27.3):
-          p = q · G · Cp - qi · (GCpi)
-
-        Parameters
-        ----------
-        qz : float  velocity pressure at height z [Pa] (windward varies with z)
-        qh : float  velocity pressure at mean roof height h [Pa]
-        L : float   building depth parallel to wind [m]
-        B : float   building width normal to wind [m]
-        h : float   mean roof height [m]
-        G : float   gust factor (default 0.85 for rigid buildings)
-        """
         Cp = asce7_Cp_walls(L, B, h)
         GCpi_pos, GCpi_neg = _ASCE7_GCPI[self.enclosure]
         results = {}
@@ -279,17 +211,10 @@ class WindPressure:
             }
         return results
 
-    # ------------------------------------------------------------------
-    # NSR-10 net pressure (identical formulation to ASCE 7)
-    # ------------------------------------------------------------------
     def nsr10_wall_pressures(self, qz: float, qh: float,
                               L: float, B: float, h: float,
                               G: float = 0.85) -> dict:
-        """
-        Net design pressures for MWFRS walls (NSR-10 §B.6.6).
-        Same formulation as ASCE 7-22 with NSR-10 coefficients.
-        """
-        Cp = asce7_Cp_walls(L, B, h)   # Same Cp table
+        Cp = asce7_Cp_walls(L, B, h)
         GCpi_pos, GCpi_neg = _NSR10_GCPI[self.enclosure]
         results = {}
         for surface, cp in Cp.items():

@@ -2,9 +2,9 @@
 terrain.py — Terrain and exposure parameters for wind load calculations.
 
 Covers:
-  - EC1-1-4 §4.3: Terrain categories 0, I, II, III, IV
+  - EC1-1-4 §4.3: Terrain categories 0, I, II, III, IV + Annex A.3 orography
   - ASCE 7-22 §26.7: Exposure categories B, C, D
-  - NSR-10 §B.6.5: Categorías de terreno A, B, C, D
+  - NSR-10 §B.6.5: Categorías de terreno A, B, C, D y equivalencia B/C/D (ASCE 7-05)
 """
 from __future__ import annotations
 import numpy as np
@@ -85,25 +85,33 @@ _ASCE7_EXPOSURE: dict[str, dict] = {
 }
 
 # ---------------------------------------------------------------------------
-# NSR-10 B.6 Terrain Categories (similar to ASCE 7-16 with Colombian values)
+# NSR-10 B.6 Terrain Categories
 # ---------------------------------------------------------------------------
 _NSR10_TERRAIN: dict[str, dict] = {
     "A": {
-        "description": "Zona costera o lacustre expuesta al viento libre",
+        "description": "Zona costera o lacustre expuesta al viento libre (equiv. Exposición D ASCE 7)",
         "Kz_15": 1.03, "alpha": 11.5, "zg": 213.36,
     },
     "B": {
-        "description": "Zona con obstrucciones dispersas (cultivos, praderas)",
+        "description": "Zona con obstrucciones dispersas, cultivos, praderas (equiv. Exposición C ASCE 7)",
         "Kz_15": 0.85, "alpha": 9.5, "zg": 274.32,
     },
     "C": {
-        "description": "Zona suburbana o con vegetación densa",
+        "description": "Zona suburbana o con vegetación densa (equiv. Exposición B ASCE 7)",
         "Kz_15": 0.62, "alpha": 7.0, "zg": 365.76,
     },
     "D": {
-        "description": "Centro urbano con edificios altos",
+        "description": "Centro urbano denso con edificios altos (α=5.0, zg=457.2 m)",
         "Kz_15": 0.49, "alpha": 5.0, "zg": 457.20,
     },
+}
+
+# Equivalencia entre categorías de exposición NSR-10 Tabla B.6.5-2 (B, C, D estilo ASCE 7-05)
+# y las claves internas de _NSR10_TERRAIN
+NSR10_ASCE7_EXPOSURE_MAP: dict[str, str] = {
+    "B": "C",  # Urbana/suburbana (α = 7.0, zg = 365.76 m)
+    "C": "B",  # Terreno abierto (α = 9.5, zg = 274.32 m)
+    "D": "A",  # Costero/plano sin obstrucciones (α = 11.5, zg = 213.36 m)
 }
 
 
@@ -120,10 +128,17 @@ class TerrainProfile:
         Terrain/exposure category per selected code.
     z_ref : float, optional
         Reference height for reporting [m]. Default 10 m.
+    c_o : float, optional
+        Constant orography factor co (default 1.0 for flat terrain).
+    orography_params : dict | None, optional
+        If provided for EC1 (keys: ``x``, ``H``, ``Lu``, optional ``Ld``, ``kind``),
+        evaluates height-dependent ``co(z)`` via :func:`ec1_orography_factor_A3`.
     """
     code: str
     category: str
     z_ref: float = 10.0
+    c_o: float = 1.0
+    orography_params: dict | None = None
 
     def __post_init__(self) -> None:
         self.code = self.code.upper()
@@ -155,39 +170,45 @@ class TerrainProfile:
         z0_II = _EC1_TERRAIN["II"]["z0"]
         kr = 0.19 * (z0 / z0_II) ** 0.07  # terrain factor
         z_eff = max(z, zmin)
-        return kr * np.log(z_eff / z0)
+        return float(kr * np.log(z_eff / z0))
 
-    def ec1_orography_factor(self) -> float:
-        """co(z) — orography factor (EC1 §4.3.3). Default 1.0 (flat terrain)."""
-        return 1.0
+    def ec1_orography_factor(self, z: float | None = None) -> float:
+        """co(z) — orography factor (EC1 §4.3.3 & Annex A.3)."""
+        if self.orography_params is not None:
+            from ..topography import ec1_orography_factor_A3
+
+            z_eval = self.z_ref if z is None else z
+            return ec1_orography_factor_A3(
+                z=z_eval,
+                x=float(self.orography_params.get("x", 0.0)),
+                H=float(self.orography_params["H"]),
+                Lu=float(self.orography_params["Lu"]),
+                Ld=self.orography_params.get("Ld"),
+                kind=str(self.orography_params.get("kind", "hill")),
+            )
+        return float(self.c_o)
 
     def ec1_mean_wind_velocity(self, z: float, vb: float) -> float:
         """
         vm(z) = cr(z) · co(z) · vb  [m/s]  (EC1 Eq. 4.3)
         """
-        return self.ec1_roughness_factor(z) * self.ec1_orography_factor() * vb
+        return self.ec1_roughness_factor(z) * self.ec1_orography_factor(z) * vb
 
     def ec1_turbulence_intensity(self, z: float) -> float:
         """
         Iv(z) = sigma_v / vm(z)  (EC1 §4.4)
-        Iv(z) = kI / (co · ln(z/z0))
+        Iv(z) = kI / (co(z) · ln(z/z0))
         """
         p = _EC1_TERRAIN[self.category]
         z0, zmin = p["z0"], p["zmin"]
         kI = 1.0  # turbulence factor (default)
         z_eff = max(z, zmin)
-        return kI / (self.ec1_orography_factor() * np.log(z_eff / z0))
+        return float(kI / (self.ec1_orography_factor(z) * np.log(z_eff / z0)))
 
     def ec1_peak_velocity_pressure(self, z: float, vb: float,
                                     rho: float = 1.25) -> float:
         """
         qp(z) = [1 + 7·Iv(z)] · 0.5 · rho · vm²(z)  [Pa]  (EC1 Eq. 4.8)
-
-        Parameters
-        ----------
-        z : float  height above ground [m]
-        vb : float  basic wind velocity [m/s]
-        rho : float  air density [kg/m³], default 1.25
         """
         vm = self.ec1_mean_wind_velocity(z, vb)
         Iv = self.ec1_turbulence_intensity(z)
@@ -212,13 +233,6 @@ class TerrainProfile:
                                  Kd: float = 0.85, Kzt: float = 1.0) -> float:
         """
         qz = 0.613 · Kz · Kzt · Kd · V²  [Pa]   (ASCE 7 Eq. 26.10-1)
-
-        Parameters
-        ----------
-        z : float  height [m]
-        V : float  basic wind speed [m/s]
-        Kd : float  directionality factor (default 0.85 for buildings)
-        Kzt : float  topographic factor (default 1.0 flat)
         """
         Kz = self.asce7_Kz(z)
         return 0.613 * Kz * Kzt * Kd * V**2
@@ -249,15 +263,6 @@ class TerrainProfile:
                        **kwargs) -> list[dict]:
         """
         Return a table of wind parameters at each height.
-
-        Parameters
-        ----------
-        heights : list of floats  [m]
-        vb_or_V : float  basic wind speed [m/s]
-
-        Returns
-        -------
-        list of dicts with keys: z, Kz_or_cr, qz
         """
         rows = []
         for z in heights:
