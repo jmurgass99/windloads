@@ -34,7 +34,7 @@ A ação do vento num edifício corrente decide-se com meia dúzia de quadros e 
 pip install git+https://github.com/jmurgass99/windloads.git
 ```
 
-Extras: `api` (FastAPI, uvicorn, httpx), `memos` (handcalcs; sem ele as memórias devolvem os mesmos números com LaTeX vazio), `dxf` (ezdxf para o desenho de cargas), `ui` (Streamlit), `test`. Para desenvolvimento: `git clone`, `pip install -e ".[test,api,memos,dxf]"`, `pytest -q` (38 ficheiros de testes; `tests/test_examples.py` executa os 33 exemplos como subprocessos). No Windows, se a consola não for UTF-8, execute os exemplos com `python -X utf8 examples/<nome>.py`. Os exemplos escrevem os seus ficheiros (JSON, CSV, .s2k, .e2k, DXF, LaTeX, Markdown, caso OpenFOAM) em `examples/out/`, que não está versionado, e a sua saída de consola em `examples/output/`.
+Extras: `api` (FastAPI, uvicorn, httpx), `memos` (handcalcs; sem ele as memórias devolvem os mesmos números com LaTeX vazio), `dxf` (ezdxf para o desenho de cargas), `ui` (Streamlit), `test`. Para desenvolvimento: `git clone`, `pip install -e ".[test,api,memos,dxf]"`, `pytest -q` (39 ficheiros de testes; `tests/test_examples.py` executa os 33 exemplos como subprocessos). No Windows, se a consola não for UTF-8, execute os exemplos com `python -X utf8 examples/<nome>.py`. Os exemplos escrevem os seus ficheiros (JSON, CSV, .s2k, .e2k, DXF, LaTeX, Markdown, caso OpenFOAM) em `examples/out/`, que não está versionado, e a sua saída de consola em `examples/output/`.
 
 ## Capacidades
 
@@ -157,13 +157,14 @@ ASCE 7 Fig. 26.8-1, H = 30 m, L_h = 100 m, exposición C, z = 10 m:
 <details><summary>Saída real de <code>python examples/nsr10_basic_wind_speed_by_zone_city_and_coordinates_three_package_tables_compared_against_region_limits.py</code></summary>
 
 ```text
-Zonas NSR-10 del paquete (zonas 2 y 4 sin contrastar):
-  zona 1: 17.0 m/s =    61 km/h
-  zona 2: 22.0 m/s =    79 km/h
-  zona 3: 28.0 m/s =   101 km/h
-  zona 4: 33.0 m/s =   119 km/h
-  zona 5: 36.0 m/s =   130 km/h
-  zona 6: 50.0 m/s =   180 km/h  ← no figura en la fuente citada (5 regiones, máx. 36 m/s)
+Regiones NSR-10 (Decreto 1711 de 2021):  B.2.3              B.2.4
+  región 1: 17.0 m/s ( 60 km/h)   22.0 m/s ( 75 km/h)
+  región 2: 22.0 m/s ( 80 km/h)   28.0 m/s (100 km/h)
+  región 3: 28.0 m/s (100 km/h)   35.0 m/s (125 km/h)
+  región 4: 33.0 m/s (120 km/h)   42.0 m/s (150 km/h)
+  región 5: 36.0 m/s (130 km/h)   46.0 m/s (165 km/h)
+  región 6: 44.0 m/s (160 km/h)   56.0 m/s (200 km/h)
+  región 7: 49.0 m/s (175 km/h)   61.0 m/s (220 km/h)
 
   ciudad         nsr10_basic    zona→V  vb_atlas  vb_map  observación
   Barranquilla          45.0    5→36.0      36.0    36.0  dispersión 9 m/s; > 36 m/s (máx. región 5)
@@ -180,7 +181,7 @@ Zonas NSR-10 del paquete (zonas 2 y 4 sin contrastar):
   Leticia               25.0    1→17.0      17.0     —    dispersión 8 m/s
   Tumaco                30.0    4→33.0      33.0     —    dispersión 3 m/s
 
-13 de 13 ciudades tienen valores distintos según la tabla; 4 (barranquilla, cartagena, santa_marta, riohacha) reciben de nsr10_basic_wind_speed más de 36 m/s, por encima de la región 5. Usa la Figura B.6.4-1 del reglamento y pasa la velocidad como número.
+13 de 13 ciudades tienen valores distintos según la tabla; 4 (barranquilla, cartagena, santa_marta, riohacha) reciben de nsr10_basic_wind_speed más de 36 m/s, por encima de la región 5. Para seguir el mapa, pasa use_regional_map_b641=True o la velocidad como número.
 
 Clasificación por coordenadas (rectángulos aproximados de la figura, no polígonos):
   Barranquilla  ( 10.96,  -74.80) → zona 5 → 36 m/s
@@ -188,6 +189,8 @@ Clasificación por coordenadas (rectángulos aproximados de la figura, no políg
   Leticia       ( -4.21,  -69.94) → zona 1 → 17 m/s
   Tumaco        (  1.80,  -78.76) → zona 4 → 33 m/s
   Yopal         (  5.34,  -72.39) → zona 3 → 28 m/s
+  San Andrés    ( 12.55,  -81.70) → zona 6 → 44 m/s
+  Providencia   ( 13.35,  -81.37) → zona 7 → 49 m/s
   Madrid (40,4; -3,7) → ValueError: Coordinates (40.4, -3.7) fall outside Colombia (approx. bbox lat∈[-4.5,13.5], lon∈[-82.0,-66.5]).
 ```
 
@@ -933,7 +936,7 @@ Faltan para ejecutar: 0/U, 0/p, 0/k, 0/epsilon o 0/omega, constant/transportProp
 
 - EN 1991-1-4: c_s·c_d vale 1 por defeito (o resultado marca-o como `unverified_default` acima de 15 m); com `compute_cscd_annex_b=True` calcula-se pelo Anexo B, procedimento 1, com n_1 = 46/h se a frequência não for dada e δ = δ_s sem a parte aerodinâmica (o caso da torre de 60 m refaz a Eq. 6.1, não o resto do anexo). `EC1WindLoad` aceita `c_o` e `orography_params` desde a 1.3, sem contrastar com um caso publicado; edifícios com abertura dominante não implementados (são rejeitados); o relatório de componentes usa um único c_pi (é preciso passar +0,2 e −0,3); as coberturas de duas águas não cobrem inclinações negativas nem a regra de cobertura plana entre −5° e 5°, e a de uma água não tem o Quadro 7.3b (θ = 90°). Só valores recomendados: nenhum anexo nacional.
 - ASCE 7: K_z com as constantes da ASCE 7-16 (a ASCE 7-22 ajustou o perfil); G = 0,85 de edifício rígido sem verificar a frequência; a cobertura do MWFRS não é calculada (`asce7_Cp_roof_flat` é uma simplificação não contrastada); os quatro casos de torção usam a excentricidade 0,15·B de edifício rígido (a ASCE dá outra para edifícios flexíveis); os quadros de componentes e revestimentos de cobertura (zonas 1-3, duas águas, uma água, cúpula, mansarda) não estão contrastados e os de parede (zonas 4 e 5) também não foram recontrastados nesta revisão; o ajuste de platibanda é próprio.
-- NSR-10: as categorias de terreno A-D de `NSR10WindLoad` não são as letras da norma (A ≈ D, B ≈ C, C ≈ B da ASCE 7-05; D sem par); `vb_atlas` e `vb_map` seguem agora as zonas, mas `NSR10_WIND_SPEED_BY_CITY` (a que `nsr10_basic_wind_speed` usa) não: quatro cidades das Caraíbas acima dos 36 m/s da região 5; a zona 6 de 50 m/s para San Andrés e Providencia não figura na fonte citada (cinco regiões); zonas 2 e 4 e fatores de importância não contrastados.
+- NSR-10: as categorias de terreno A-D de `NSR10WindLoad` não são as letras da norma (A ≈ D, B ≈ C, C ≈ B da ASCE 7-05; D sem par); `vb_atlas` e `vb_map` seguem agora as zonas, mas `NSR10_WIND_SPEED_BY_CITY` (a que `nsr10_basic_wind_speed` usa) não: quatro cidades das Caraíbas acima dos 36 m/s da região 5; as regiões de ameaça (`NSR10_WIND_ZONES`, B.2.3, e `NSR10_WIND_ZONES_B24`) seguem o mapa do Decreto 1711 de 2021, sete regiões com San Andrés (6) e Providencia (7); fatores de importância não contrastados.
 - NCh 432, AS 1170.2 e SS EN: constantes e quadros de `nch432` e `codes_multi` não contrastados (o K_z da NCh 432 sai 11-37 % abaixo do da ASCE 7-05). O quadro «ASCE» de períodos de retorno dá 0,90 em T = 50 anos.
 - Dinâmica: o fator de rajada de Davenport usa (h + h) em Q e omite R_B·(0,53 + 0,47·R_L) em R; I_z, L_z e V_z são dados. Nos vórtices, c_lat não se obtém do número de Reynolds nem se aplica o Quadro E.3, e a banda de sincronização é um critério próprio. `aeroelastic.galloping_critical_velocity` usa o sinal de Den Hartog (não o a_G do Quadro E.7), `flutter_2dof` não é válido e o fator de interferência de esteira é próprio.
 - Exportação e integrações: os fragmentos .s2k/.e2k não foram importados no SAP2000 nem no ETABS; as pontes para o SAP2000 multiplicam por 1000 supondo o modelo em N (a API usa as unidades atuais do modelo); o pré-processador do OpenFOAM não gera um caso executável; o desenho DXF é esquemático (uma seta por face).
@@ -945,6 +948,7 @@ Faltan para ejecutar: 0/U, 0/p, 0/k, 0/epsilon o 0/omega, constant/transportProp
 - ASCE/SEI 7-10 §26.8 e Fig. 26.8-1 (fator topográfico); ASCE/SEI 7-16 Fig. 27.3-1 (Cp de paredes do MWFRS), §30.3 (faixa de canto a) e §27.3.5 / Fig. 27.3-8 (quatro casos de carga com excentricidade ±0,15·B em edifícios rígidos; as percentagens de 75 % e 56,3 % do módulo não foram contrastadas com o texto).
 - SEAOG, «ASCE 7-22 wind changes» (2025), sobre o ajuste do perfil de K_z.
 - O. D. Arroyo Amell e L. Ramos Castillo, «Necesidad de revisión de cargas y factores parciales de la NSR-10 para el diseño de estructuras sometidas a acciones de viento», *Ingeniería y Ciencia* 11(21):177-195 (2015), doi:10.17230/ingciencia.11.21.9 (regiões de velocidade da NSR-10 e adoção da ASCE 7-05).
+- Ministerio de Vivienda, Ciudad y Territorio (Colômbia), Decreto 1711 de 13 de dezembro de 2021, Anexo Técnico: Figura B.6.4-1 da NSR-10 modificada, «Velocidad del viento básico, zonas de amenaza eólica» (sete regiões, velocidades para as combinações de B.2.3 e de B.2.4).
 - CTE DB SE-AE (ficha W00483 dos testes de referência).
 
 ## Licença

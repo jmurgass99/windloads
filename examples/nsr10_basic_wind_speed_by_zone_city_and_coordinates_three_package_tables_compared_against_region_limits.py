@@ -1,18 +1,20 @@
 """Velocidad básica de viento en Colombia (NSR-10 B.6): zonas, ciudades y coordenadas, y las tres tablas del paquete enfrentadas.
 
-La NSR-10 distingue 5 regiones de amenaza eólica, de 17 m/s (60 km/h) en la región 1 a 36 m/s (130 km/h) en la
-región 5, con 28 m/s (100 km/h) en buena parte del territorio (Arroyo Amell y Ramos Castillo, *Ingeniería y
-Ciencia* 11(21), 2015, p. 181; NSR-10 Figura B.6.4-1, que no se ha consultado directamente). El paquete
-tiene TRES tablas de ciudades que no coinciden entre sí: `NSR10_WIND_SPEED_BY_CITY` (la que usa
-`nsr10_basic_wind_speed`), `vb_atlas` y `vb_map`; ninguna está contrastada con la figura. Este ejemplo las
-pone una al lado de otra y marca, por cálculo, las que superan el máximo de 36 m/s de la región 5. Desde la
-1.3 el paquete añade una zona 6 de 50 m/s para San Andrés y Providencia que la fuente citada no recoge.
+La Figura B.6.4-1 de la NSR-10, en la versión del Decreto 1711 de 2021 (Anexo Técnico), distingue 7 regiones
+de amenaza eólica con dos velocidades cada una: la de las combinaciones de B.2.3, de 17 m/s (60 km/h) en la
+región 1 a 36 m/s (130 km/h) en la región 5 del continente, 44 m/s (160 km/h) en la isla de San Andrés
+(región 6) y 49 m/s (175 km/h) en Providencia y Santa Catalina (región 7); y la de B.2.4, de 22 a 61 m/s.
+`NSR10_WIND_ZONES` y `NSR10_WIND_ZONES_B24` copian esa tabla. El paquete tiene además TRES tablas de
+ciudades que no coinciden entre sí: `NSR10_WIND_SPEED_BY_CITY` (la que usa `nsr10_basic_wind_speed` por
+defecto), `vb_atlas` y `vb_map`. Este ejemplo las pone una al lado de otra y marca, por cálculo, las ciudades
+del continente que superan los 36 m/s de la región 5.
 
 Ejecutar:  python examples/nsr10_basic_wind_speed_by_zone_city_and_coordinates_three_package_tables_compared_against_region_limits.py
 """
 from windloads.codes.nsr10_b6 import (
     NSR10_CITY_ZONES,
     NSR10_WIND_ZONES,
+    NSR10_WIND_ZONES_B24,
     nsr10_basic_wind_speed,
     nsr10_zone_from_coords,
 )
@@ -20,13 +22,16 @@ from windloads.vb_atlas import vb_for
 from windloads.vb_map import lookup_Vb
 
 V_MAX_REGION_5 = 36.0   # 130 km/h
+# km/h tal como los imprime el mapa del decreto (los m/s están redondeados)
+DECREE_KMH = {1: (60, 75), 2: (80, 100), 3: (100, 125), 4: (120, 150), 5: (130, 165), 6: (160, 200), 7: (175, 220)}
 
 
 def main() -> None:
-    print("Zonas NSR-10 del paquete (zonas 2 y 4 sin contrastar):")
+    print("Regiones NSR-10 (Decreto 1711 de 2021):  B.2.3              B.2.4")
     for z, v in NSR10_WIND_ZONES.items():
-        extra = "  ← no figura en la fuente citada (5 regiones, máx. 36 m/s)" if v > V_MAX_REGION_5 else ""
-        print(f"  zona {z}: {v:4.1f} m/s = {v * 3.6:5.0f} km/h{extra}")
+        v24 = NSR10_WIND_ZONES_B24[z]
+        k23, k24 = DECREE_KMH[z]
+        print(f"  región {z}: {v:4.1f} m/s ({k23:3d} km/h)   {v24:4.1f} m/s ({k24:3d} km/h)")
 
     cities = ["barranquilla", "cartagena", "santa_marta", "riohacha", "monteria", "bogota", "medellin",
               "cali", "bucaramanga", "cucuta", "villavicencio", "leticia", "tumaco"]
@@ -54,11 +59,12 @@ def main() -> None:
 
     print(f"\n{len(disagree)} de {len(cities)} ciudades tienen valores distintos según la tabla; "
           f"{len(above)} ({', '.join(above)}) reciben de nsr10_basic_wind_speed más de 36 m/s, "
-          "por encima de la región 5. Usa la Figura B.6.4-1 del reglamento y pasa la velocidad como número.")
+          "por encima de la región 5. Para seguir el mapa, pasa use_regional_map_b641=True o la velocidad como número.")
 
     print("\nClasificación por coordenadas (rectángulos aproximados de la figura, no polígonos):")
     for name, lat, lon in (("Barranquilla", 10.96, -74.80), ("Bogotá", 4.71, -74.07),
-                           ("Leticia", -4.21, -69.94), ("Tumaco", 1.80, -78.76), ("Yopal", 5.34, -72.39)):
+                           ("Leticia", -4.21, -69.94), ("Tumaco", 1.80, -78.76), ("Yopal", 5.34, -72.39),
+                           ("San Andrés", 12.55, -81.70), ("Providencia", 13.35, -81.37)):
         z = nsr10_zone_from_coords(lat, lon)
         print(f"  {name:<13} ({lat:6.2f}, {lon:7.2f}) → zona {z} → {NSR10_WIND_ZONES[z]:.0f} m/s")
     try:
