@@ -1,5 +1,7 @@
 # windloads — cargas de viento sobre edificios y estructuras en Python
 
+**Español** · [English](README.en.md) · [Português](README.pt.md) · [Italiano](README.it.md)
+
 Presión pico de EN 1991-1-4 con categorías de terreno y orografía del Anexo A.3, coeficientes de presión de muros y cubiertas (Tablas 7.1 a 7.4) y fuerzas por planta con alturas de referencia y falta de correlación; presión de velocidad, factor topográfico, fuerzas del MWFRS, los cuatro casos de torsión y componentes y revestimientos de ASCE 7; NSR-10 B.6 por el procedimiento de ASCE 7-05; factor de ráfaga de Davenport, desprendimiento de torbellinos y galope del Anexo E; memorias con handcalcs, API REST y exportación a JSON, CSV, SAP2000, ETABS, modelo canónico, DXF y OpenFOAM. Dependencias: `numpy` y `pydantic`.
 
 [![CI](https://github.com/jmurgass99/windloads/actions/workflows/ci.yml/badge.svg)](https://github.com/jmurgass99/windloads/actions/workflows/ci.yml)
