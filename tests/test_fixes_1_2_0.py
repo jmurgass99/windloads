@@ -382,7 +382,7 @@ class TestServicesDelegateToTheEngines:
 def test_single_version_everywhere():
     pyproject = Path(__file__).resolve().parents[1] / "pyproject.toml"
     data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
-    assert data["project"]["version"] == __version__ == "1.2.0"
+    assert data["project"]["version"] == __version__ == "1.2.1"
     pytest.importorskip("fastapi")
     from windloads.api.app import app
     assert app.version == __version__

@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.2.1 — 2026-11-02
+
+Fuente: Decreto 1711 del 13 de diciembre de 2021 (Ministerio de Vivienda, Ciudad y Territorio), Anexo Técnico, que
+modifica la Figura B.6.4-1 de la NSR-10.
+
+### Corregido
+- `NSR10_WIND_ZONES`: la zona 6 valía 50 m/s (180 km/h), cifra sin fuente. El mapa del decreto tiene siete regiones:
+  San Andrés es la región 6, con 44 m/s (160 km/h), y Providencia y Santa Catalina la región 7, con 49 m/s (175 km/h),
+  para las combinaciones de B.2.3. Las regiones 1 a 5 (17, 22, 28, 33 y 36 m/s) no cambian y quedan contrastadas.
+  `nsr10_zone_from_coords` separa ahora las dos islas; `NSR10_WIND_SPEED_BY_CITY`, `NSR10_CITY_ZONES` y `vb_atlas`
+  dan 44 m/s en San Andrés.
+
+### Añadido
+- `NSR10_WIND_ZONES_B24` (22, 28, 35, 42, 46, 56 y 61 m/s) y el argumento `combinations="B.2.3" | "B.2.4"` de
+  `nsr10_basic_wind_speed`. La tabla por ciudades solo tiene la columna B.2.3, así que una ciudad con `"B.2.4"` exige
+  `use_regional_map_b641=True`.
+
 ## 1.2.0 — 2026-11-01
 
 Fuentes consultadas para las correcciones: EN 1991-1-4:2005+A1:2010 (texto completo: Tabla 7.1, §7.2.2, Figura 7.4,

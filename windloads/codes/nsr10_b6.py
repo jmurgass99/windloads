@@ -46,29 +46,46 @@ NSR10_WIND_SPEED_BY_CITY: dict[str, float] = {
     "yopal":            30.0,
     # Amazon
     "leticia":          25.0,
-    # Insular
-    "san_andres":       50.0,
+    # Insular (Decreto 1711 de 2021, regiones 6 y 7, combinaciones B.2.3)
+    "san_andres":       44.0,
+    "providencia":      49.0,
     # Default
     "default":          27.0,
 }
 
 
 # ---------------------------------------------------------------------------
-# NSR-10 §B.6.4 — Wind threat zones (Figura B.6.4-1)
-#   Región 1 :  60 km/h  ≈ 17 m/s   (Amazonía, sur Andino)
-#   Región 2 :  80 km/h  ≈ 22 m/s   (piedemonte amazónico y sur)
-#   Región 3 : 100 km/h  ≈ 28 m/s   (interior Andino general y Llanos)
-#   Región 4 : 120 km/h  ≈ 33 m/s   (Caribe interior, Santanderes, Pacífico)
-#   Región 5 : 130 km/h  ≈ 36 m/s   (costa Caribe, Guajira)
-#   Región 6 : 180 km/h  ≈ 50 m/s   (Archipiélago de San Andrés y Providencia)
+# NSR-10 §B.6.4 — Wind threat zones (Figura B.6.4-1 as modified by
+# Decreto 1711 de 2021, Anexo Técnico): 7 regions, with one speed for the
+# load combinations of B.2.3 and another for those of B.2.4.
+#   Región   B.2.3            B.2.4
+#     1     17 m/s ( 60 km/h)  22 m/s ( 75 km/h)
+#     2     22 m/s ( 80 km/h)  28 m/s (100 km/h)
+#     3     28 m/s (100 km/h)  35 m/s (125 km/h)
+#     4     33 m/s (120 km/h)  42 m/s (150 km/h)
+#     5     36 m/s (130 km/h)  46 m/s (165 km/h)
+#     6     44 m/s (160 km/h)  56 m/s (200 km/h)   Isla de San Andrés
+#     7     49 m/s (175 km/h)  61 m/s (220 km/h)   Providencia y Santa Catalina
+# Zonas no estudiadas: 28 m/s (B.2.3) y 35 m/s (B.2.4).
 # ---------------------------------------------------------------------------
 NSR10_WIND_ZONES: dict[int, float] = {
     1: 17.0,   # 60 km/h — baja amenaza
     2: 22.0,   # 80 km/h
     3: 28.0,   # 100 km/h
     4: 33.0,   # 120 km/h
-    5: 36.0,   # 130 km/h — alta amenaza (costa Caribe)
-    6: 50.0,   # 180 km/h — zona insular huracanada (San Andrés y Providencia)
+    5: 36.0,   # 130 km/h — costa Caribe
+    6: 44.0,   # 160 km/h — Isla de San Andrés
+    7: 49.0,   # 175 km/h — Providencia y Santa Catalina
+}
+
+NSR10_WIND_ZONES_B24: dict[int, float] = {
+    1: 22.0,   # 75 km/h
+    2: 28.0,   # 100 km/h
+    3: 35.0,   # 125 km/h
+    4: 42.0,   # 150 km/h
+    5: 46.0,   # 165 km/h
+    6: 56.0,   # 200 km/h
+    7: 61.0,   # 220 km/h
 }
 
 
@@ -83,6 +100,8 @@ NSR10_CITY_ZONES: dict[str, int] = {
     "sincelejo":        4,
     # Insular
     "san_andres":       6,
+    "providencia":      7,
+    "santa_catalina":   7,
     # Pacífico
     "buenaventura":     4,
     "tumaco":           4,
@@ -117,8 +136,10 @@ NSR10_CITY_ZONES: dict[str, int] = {
 
 
 _NSR10_ZONE_BBOXES: list[tuple[float, float, float, float, int]] = [
-    # Zona 6: Archipiélago de San Andrés y Providencia
-    (12.0, 13.5, -82.0, -81.0, 6),
+    # Zona 7: Providencia y Santa Catalina (≈13,35 N)
+    (13.0, 13.5, -82.0, -81.0, 7),
+    # Zona 6: Isla de San Andrés (≈12,55 N)
+    (12.0, 13.0, -82.0, -81.0, 6),
     # Zona 5: Guajira + costa Caribe (Atlántico, norte Magdalena, Bolívar norte)
     (10.0, 12.7, -75.8, -71.0, 5),
     # Zona 4: Caribe interior (Córdoba, Sucre, Cesar, sur Bolívar, Santanderes, Arauca, Casanare)
@@ -171,6 +192,7 @@ def nsr10_basic_wind_speed(
     lat: float | None = None,
     lon: float | None = None,
     use_regional_map_b641: bool = False,
+    combinations: str = "B.2.3",
 ) -> float:
     """
     Return the basic wind speed [m/s] per NSR-10 §B.6.4 (Figura B.6.4-1).
@@ -180,25 +202,38 @@ def nsr10_basic_wind_speed(
     Region 5 = 36 m/s) directly. When ``use_regional_map_b641=False`` (default),
     the per-capital table (`NSR10_WIND_SPEED_BY_CITY`) takes precedence for
     backward compatibility.
+
+    ``combinations`` selects the column of the Decreto 1711 de 2021 map:
+    ``"B.2.3"`` (default, the historical NSR-10 speeds) or ``"B.2.4"``. The
+    B.2.4 column only applies to the regional zones (``zone``, ``lat``/``lon``,
+    or a city with ``use_regional_map_b641=True``); the per-city table has a
+    single value and raises ``ValueError`` if asked for B.2.4.
     """
+    if combinations not in ("B.2.3", "B.2.4"):
+        raise ValueError(f"combinations must be 'B.2.3' or 'B.2.4', got {combinations!r}.")
+    zones = NSR10_WIND_ZONES if combinations == "B.2.3" else NSR10_WIND_ZONES_B24
     if city is not None:
         key = _normalize_city_key(city)
         if use_regional_map_b641 and key in NSR10_CITY_ZONES:
-            return NSR10_WIND_ZONES[NSR10_CITY_ZONES[key]]
+            return zones[NSR10_CITY_ZONES[key]]
+        if use_regional_map_b641:
+            return zones[3]
+        if combinations == "B.2.4":
+            raise ValueError("The per-city table has no B.2.4 column; pass use_regional_map_b641=True.")
         if key in NSR10_WIND_SPEED_BY_CITY:
             return NSR10_WIND_SPEED_BY_CITY[key]
         if key in NSR10_CITY_ZONES:
             return NSR10_WIND_ZONES[NSR10_CITY_ZONES[key]]
-        return NSR10_WIND_ZONES[3] if use_regional_map_b641 else NSR10_WIND_SPEED_BY_CITY["default"]
+        return NSR10_WIND_SPEED_BY_CITY["default"]
 
     if zone is not None:
-        if zone not in NSR10_WIND_ZONES:
-            raise ValueError(f"Invalid NSR-10 wind zone {zone!r}; expected 1..6.")
-        return NSR10_WIND_ZONES[zone]
+        if zone not in zones:
+            raise ValueError(f"Invalid NSR-10 wind zone {zone!r}; expected 1..7.")
+        return zones[zone]
 
     if lat is not None and lon is not None:
         z = nsr10_zone_from_coords(lat, lon)
-        return NSR10_WIND_ZONES[z]
+        return zones[z]
 
     raise TypeError(
         "nsr10_basic_wind_speed requires one of: city, zone, or (lat, lon)."

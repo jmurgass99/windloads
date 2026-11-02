@@ -92,7 +92,7 @@ _COLOMBIA: list[VbEntry] = [
     VbEntry("Leticia",       "CO", "NSR-10", 17.0, "3 s gust", "Región 1 — Amazonía (60 km/h)"),
     VbEntry("Tumaco",        "CO", "NSR-10", 33.0, "3 s gust", "Región 4 (120 km/h)"),
     VbEntry("Buenaventura",  "CO", "NSR-10", 33.0, "3 s gust", "Región 4 (120 km/h)"),
-    VbEntry("San Andres",    "CO", "NSR-10", 50.0, "3 s gust", "Región 6 — Insular huracanes (180 km/h)"),
+    VbEntry("San Andres",    "CO", "NSR-10", 44.0, "3 s gust", "Región 6 — Isla de San Andrés (160 km/h; Decreto 1711 de 2021, B.2.3)"),
 ]
 
 # ----------------------------------------------------------- Espana (30)

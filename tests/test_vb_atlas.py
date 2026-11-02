@@ -36,7 +36,7 @@ def test_vb_chile(city, country, vmin, vmax):
 @pytest.mark.parametrize("city,vmin,vmax", [
     ("Bogota",       24.0, 30.0),
     ("Barranquilla", 36.0, 45.0),
-    ("San Andres",   45.0, 55.0),
+    ("San Andres",   43.5, 44.5),   # Decreto 1711 de 2021, región 6 (B.2.3)
     ("Cali",         30.0, 36.0),
     ("Medellin",     24.0, 30.0),
 ])

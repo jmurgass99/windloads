@@ -15,6 +15,7 @@ from .nsr10_b6 import (
     nsr10_zone_from_coords,
     NSR10_WIND_SPEED_BY_CITY,
     NSR10_WIND_ZONES,
+    NSR10_WIND_ZONES_B24,
     NSR10_CITY_ZONES,
 )
 
@@ -28,5 +29,6 @@ __all__ = [
     "nsr10_zone_from_coords",
     "NSR10_WIND_SPEED_BY_CITY",
     "NSR10_WIND_ZONES",
+    "NSR10_WIND_ZONES_B24",
     "NSR10_CITY_ZONES",
 ]

@@ -55,7 +55,7 @@ def test_nsr10_regional_map_b641_and_exposure_convention():
     # Default backward-compatible table values
     assert nsr10_basic_wind_speed("Bogotá") == pytest.approx(27.0)
     assert nsr10_basic_wind_speed("Barranquilla") == pytest.approx(45.0)
-    assert nsr10_basic_wind_speed(zone=6) == pytest.approx(50.0)
+    assert nsr10_basic_wind_speed(zone=6) == pytest.approx(44.0)   # Decreto 1711 de 2021, B.2.3
 
     # NSR-10 Fig. B.6.4-1 regional threat zone alignment across modules
     v_bog = nsr10_basic_wind_speed("Bogotá", use_regional_map_b641=True)
@@ -63,7 +63,7 @@ def test_nsr10_regional_map_b641_and_exposure_convention():
     v_san = nsr10_basic_wind_speed("San Andrés", use_regional_map_b641=True)
     assert v_bog == pytest.approx(lookup_Vb("Bogotá").Vb_m_s) == pytest.approx(vb_for("Bogotá", "CO"))
     assert v_baq == pytest.approx(lookup_Vb("Barranquilla").Vb_m_s) == pytest.approx(vb_for("Barranquilla", "CO"))
-    assert v_san == pytest.approx(50.0)
+    assert v_san == pytest.approx(44.0)
 
     # Exposure convention toggle (ASCE 7 B/C/D vs legacy)
     w_legacy = NSR10WindLoad(city_or_Vb="Bogotá", terrain_cat="B", building_height=15.0)
