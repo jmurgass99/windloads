@@ -12,3 +12,5 @@ h = 60 m, b = 20 m, d = 30 m (h/d = 2.0): c_pe,E = -0.550, f = 0.8875, q_p(h) = 
 Cortante basal 1806.6 kN (suma independiente 1806.6 kN); vuelco 56492 kN·m (independiente 56494 kN·m); brazo equivalente 31.3 m.
 Con q_p(h) en toda la altura (simplificación habitual) saldría 1980 kN, +10 % sobre el reparto por franjas.
 c_s·c_d = 1.0 → estado: unverified_default_h_gt_15m (requiere cálculo dinámico §6.3 o Anexo B/C) (justificado: False).
+Con compute_cscd_annex_b=True: c_s·c_d = 0.9464 (computed_en1991_1_4_annex_b); z_s = 36 m, n_1 = 0.767 Hz, L(z_s) = 105 m, B² = 0.569, R² = 0.254, k_p = 3.51
+  Ec. (6.1) a mano con I_v(z_s) = 0.2089: 0.9464; cortante basal 1709.8 kN (0.9464 veces el de c_s·c_d = 1).

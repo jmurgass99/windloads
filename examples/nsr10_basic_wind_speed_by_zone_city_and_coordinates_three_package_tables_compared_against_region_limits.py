@@ -5,7 +5,8 @@ región 5, con 28 m/s (100 km/h) en buena parte del territorio (Arroyo Amell y R
 Ciencia* 11(21), 2015, p. 181; NSR-10 Figura B.6.4-1, que no se ha consultado directamente). El paquete
 tiene TRES tablas de ciudades que no coinciden entre sí: `NSR10_WIND_SPEED_BY_CITY` (la que usa
 `nsr10_basic_wind_speed`), `vb_atlas` y `vb_map`; ninguna está contrastada con la figura. Este ejemplo las
-pone una al lado de otra y marca, por cálculo, las que superan el máximo de 36 m/s de la región 5.
+pone una al lado de otra y marca, por cálculo, las que superan el máximo de 36 m/s de la región 5. Desde la
+1.3 el paquete añade una zona 6 de 50 m/s para San Andrés y Providencia que la fuente citada no recoge.
 
 Ejecutar:  python examples/nsr10_basic_wind_speed_by_zone_city_and_coordinates_three_package_tables_compared_against_region_limits.py
 """
@@ -22,9 +23,10 @@ V_MAX_REGION_5 = 36.0   # 130 km/h
 
 
 def main() -> None:
-    print("Zonas NSR-10 del paquete (zona 2 y 4 sin contrastar):")
+    print("Zonas NSR-10 del paquete (zonas 2 y 4 sin contrastar):")
     for z, v in NSR10_WIND_ZONES.items():
-        print(f"  zona {z}: {v:4.1f} m/s = {v * 3.6:5.0f} km/h")
+        extra = "  ← no figura en la fuente citada (5 regiones, máx. 36 m/s)" if v > V_MAX_REGION_5 else ""
+        print(f"  zona {z}: {v:4.1f} m/s = {v * 3.6:5.0f} km/h{extra}")
 
     cities = ["barranquilla", "cartagena", "santa_marta", "riohacha", "monteria", "bogota", "medellin",
               "cali", "bucaramanga", "cucuta", "villavicencio", "leticia", "tumaco"]

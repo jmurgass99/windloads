@@ -21,7 +21,7 @@ La carga de viento de un edificio corriente se decide con media docena de tablas
 **No lo uses para**
 
 - edificios de forma no rectangular, cubiertas abovedadas, marquesinas o estructuras de celosía: las tablas de cubiertas complejas, cúpulas, antepechos y seguidores solares del paquete son indicativas y no salen de ninguna norma verificada;
-- el factor estructural c_s·c_d de EN 1991-1-4 ni el análisis dinámico de edificios esbeltos: c_s·c_d vale 1 (con un estado que lo declara sin justificar por encima de 15 m) y el factor de Davenport está simplificado;
+- el análisis dinámico de edificios esbeltos: c_s·c_d vale 1 por defecto (con un estado que lo declara sin justificar por encima de 15 m), el Anexo B solo se aplica con `compute_cscd_annex_b=True` (procedimiento 1, sin amortiguamiento aerodinámico) y el factor de Davenport está simplificado;
 - elegir la velocidad básica de un emplazamiento: las tablas por ciudad (Colombia, Chile, España) no están contrastadas y no coinciden entre sí; usa el mapa oficial y pasa la velocidad como número;
 - el flameo de tableros o placas (el modelo 2-GDL del módulo `aeroelastic` no es válido) ni la interferencia entre cilindros;
 - ASCE 7-22 al pie de la letra: K_z usa las constantes de ASCE 7-16 y las tablas de cubierta de componentes y revestimientos no están contrastadas.
@@ -32,7 +32,7 @@ La carga de viento de un edificio corriente se decide con media docena de tablas
 pip install git+https://github.com/jmurgass99/windloads.git
 ```
 
-Extras: `api` (FastAPI, uvicorn, httpx), `memos` (handcalcs; sin él las memorias devuelven los mismos números con LaTeX vacío), `dxf` (ezdxf para el plano de cargas), `ui` (Streamlit), `test`. Para desarrollo: `git clone`, `pip install -e ".[test,api,memos,dxf]"`, `pytest -q` (36 ficheros de tests; `tests/test_examples.py` ejecuta los 33 ejemplos como subprocesos). En Windows, si la consola no es UTF-8, ejecuta los ejemplos con `python -X utf8 examples/<nombre>.py`. Los ejemplos escriben sus ficheros (JSON, CSV, .s2k, .e2k, DXF, LaTeX, Markdown, caso OpenFOAM) en `examples/out/`, que no se versiona, y su salida de consola en `examples/output/`.
+Extras: `api` (FastAPI, uvicorn, httpx), `memos` (handcalcs; sin él las memorias devuelven los mismos números con LaTeX vacío), `dxf` (ezdxf para el plano de cargas), `ui` (Streamlit), `test`. Para desarrollo: `git clone`, `pip install -e ".[test,api,memos,dxf]"`, `pytest -q` (38 ficheros de tests; `tests/test_examples.py` ejecuta los 33 ejemplos como subprocesos). En Windows, si la consola no es UTF-8, ejecuta los ejemplos con `python -X utf8 examples/<nombre>.py`. Los ejemplos escriben sus ficheros (JSON, CSV, .s2k, .e2k, DXF, LaTeX, Markdown, caso OpenFOAM) en `examples/out/`, que no se versiona, y su salida de consola en `examples/output/`.
 
 ## Capacidades
 
@@ -153,27 +153,28 @@ ASCE 7 Fig. 26.8-1, H = 30 m, L_h = 100 m, exposición C, z = 10 m:
 <details><summary>Salida real de <code>python examples/nsr10_basic_wind_speed_by_zone_city_and_coordinates_three_package_tables_compared_against_region_limits.py</code></summary>
 
 ```text
-Zonas NSR-10 del paquete (zona 2 y 4 sin contrastar):
+Zonas NSR-10 del paquete (zonas 2 y 4 sin contrastar):
   zona 1: 17.0 m/s =    61 km/h
   zona 2: 22.0 m/s =    79 km/h
   zona 3: 28.0 m/s =   101 km/h
   zona 4: 33.0 m/s =   119 km/h
   zona 5: 36.0 m/s =   130 km/h
+  zona 6: 50.0 m/s =   180 km/h  ← no figura en la fuente citada (5 regiones, máx. 36 m/s)
 
   ciudad         nsr10_basic    zona→V  vb_atlas  vb_map  observación
-  Barranquilla          45.0    5→36.0      40.0    40.0  dispersión 9 m/s; > 36 m/s (máx. región 5)
-  Cartagena             45.0    5→36.0      36.0    33.0  dispersión 12 m/s; > 36 m/s (máx. región 5)
+  Barranquilla          45.0    5→36.0      36.0    36.0  dispersión 9 m/s; > 36 m/s (máx. región 5)
+  Cartagena             45.0    5→36.0      36.0    36.0  dispersión 9 m/s; > 36 m/s (máx. región 5)
   Santa Marta           40.0    5→36.0      36.0     —    dispersión 4 m/s; > 36 m/s (máx. región 5)
-  Riohacha              45.0    5→36.0      40.0     —    dispersión 9 m/s; > 36 m/s (máx. región 5)
+  Riohacha              45.0    5→36.0      36.0     —    dispersión 9 m/s; > 36 m/s (máx. región 5)
   Monteria              30.0    4→33.0      33.0     —    dispersión 3 m/s
-  Bogota                27.0    3→28.0      26.0    26.0  dispersión 2 m/s
-  Medellin              27.0    3→28.0      26.0    26.0  dispersión 2 m/s
+  Bogota                27.0    3→28.0      28.0    28.0  dispersión 1 m/s
+  Medellin              27.0    3→28.0      28.0    28.0  dispersión 1 m/s
   Cali                  27.0    3→28.0      33.0    33.0  dispersión 6 m/s
-  Bucaramanga           30.0    4→33.0      28.0     —    dispersión 5 m/s
-  Cucuta                35.0    4→33.0      28.0     —    dispersión 7 m/s
+  Bucaramanga           30.0    4→33.0      33.0     —    dispersión 3 m/s
+  Cucuta                35.0    4→33.0      33.0     —    dispersión 2 m/s
   Villavicencio         27.0    3→28.0      28.0     —    dispersión 1 m/s
-  Leticia               25.0    1→17.0      26.0     —    dispersión 9 m/s
-  Tumaco                30.0    4→33.0      30.0     —    dispersión 3 m/s
+  Leticia               25.0    1→17.0      17.0     —    dispersión 8 m/s
+  Tumaco                30.0    4→33.0      33.0     —    dispersión 3 m/s
 
 13 de 13 ciudades tienen valores distintos según la tabla; 4 (barranquilla, cartagena, santa_marta, riohacha) reciben de nsr10_basic_wind_speed más de 36 m/s, por encima de la región 5. Usa la Figura B.6.4-1 del reglamento y pasa la velocidad como número.
 
@@ -488,6 +489,8 @@ h = 60 m, b = 20 m, d = 30 m (h/d = 2.0): c_pe,E = -0.550, f = 0.8875, q_p(h) = 
 Cortante basal 1806.6 kN (suma independiente 1806.6 kN); vuelco 56492 kN·m (independiente 56494 kN·m); brazo equivalente 31.3 m.
 Con q_p(h) en toda la altura (simplificación habitual) saldría 1980 kN, +10 % sobre el reparto por franjas.
 c_s·c_d = 1.0 → estado: unverified_default_h_gt_15m (requiere cálculo dinámico §6.3 o Anexo B/C) (justificado: False).
+Con compute_cscd_annex_b=True: c_s·c_d = 0.9464 (computed_en1991_1_4_annex_b); z_s = 36 m, n_1 = 0.767 Hz, L(z_s) = 105 m, B² = 0.569, R² = 0.254, k_p = 3.51
+  Ec. (6.1) a mano con I_v(z_s) = 0.2089: 0.9464; cortante basal 1709.8 kN (0.9464 veces el de c_s·c_d = 1).
 ```
 
 </details>
@@ -924,9 +927,9 @@ Faltan para ejecutar: 0/U, 0/p, 0/k, 0/epsilon o 0/omega, constant/transportProp
 
 ## Limitaciones
 
-- EN 1991-1-4: c_s·c_d no se calcula (vale 1 y el resultado lo marca `unverified_default` por encima de 15 m); `EC1WindLoad` no incorpora el c_o de orografía (hay que calcularlo con `topography` y aplicarlo aparte, como en el informe); edificios con abertura dominante no implementados (se rechazan); el informe de componentes usa un solo c_pi (hay que pasar +0,2 y −0,3); las cubiertas a dos aguas no cubren pendientes negativas ni la regla de cubierta plana entre −5° y 5°, y la de un agua no tiene la Tabla 7.3b (θ = 90°). Solo valores recomendados: ningún anejo nacional.
+- EN 1991-1-4: c_s·c_d vale 1 por defecto (el resultado lo marca `unverified_default` por encima de 15 m); con `compute_cscd_annex_b=True` se calcula por el Anexo B, procedimiento 1, con n_1 = 46/h si no se da la frecuencia y δ = δ_s sin la parte aerodinámica (el caso de la torre de 60 m rehace la Ec. 6.1, no el resto del anexo). `EC1WindLoad` acepta `c_o` y `orography_params` desde la 1.3, sin contrastar con un caso publicado; edificios con abertura dominante no implementados (se rechazan); el informe de componentes usa un solo c_pi (hay que pasar +0,2 y −0,3); las cubiertas a dos aguas no cubren pendientes negativas ni la regla de cubierta plana entre −5° y 5°, y la de un agua no tiene la Tabla 7.3b (θ = 90°). Solo valores recomendados: ningún anejo nacional.
 - ASCE 7: K_z con las constantes de ASCE 7-16 (ASCE 7-22 ajustó el perfil); G = 0,85 de edificio rígido sin comprobar la frecuencia; la cubierta del MWFRS no se calcula (`asce7_Cp_roof_flat` es una simplificación sin contrastar); los cuatro casos de torsión usan la excentricidad 0,15·B de edificio rígido (ASCE da otra para edificios flexibles); las tablas de componentes y revestimientos de cubierta (zonas 1-3, dos aguas, un agua, cúpula, mansarda) no están contrastadas y las de muro (zonas 4 y 5) tampoco se han vuelto a contrastar en esta revisión; el ajuste de antepecho es propio.
-- NSR-10: las categorías de terreno A-D de `NSR10WindLoad` no son las letras de la norma (A ≈ D, B ≈ C, C ≈ B de ASCE 7-05; D sin pareja); las tres tablas de velocidades por ciudad no coinciden entre sí ni con la Figura B.6.4-1 (cuatro ciudades del Caribe por encima de los 36 m/s de la región 5); zonas 2 y 4 y factores de importancia sin contrastar.
+- NSR-10: las categorías de terreno A-D de `NSR10WindLoad` no son las letras de la norma (A ≈ D, B ≈ C, C ≈ B de ASCE 7-05; D sin pareja); `vb_atlas` y `vb_map` siguen ahora las zonas, pero `NSR10_WIND_SPEED_BY_CITY` (la que usa `nsr10_basic_wind_speed`) no: cuatro ciudades del Caribe por encima de los 36 m/s de la región 5; la zona 6 de 50 m/s para San Andrés y Providencia no figura en la fuente citada (cinco regiones); zonas 2 y 4 y factores de importancia sin contrastar.
 - NCh 432, AS 1170.2 y SS EN: constantes y tablas de `nch432` y `codes_multi` sin contrastar (el K_z de NCh 432 sale 11-37 % por debajo del de ASCE 7-05). La tabla «ASCE» de periodos de retorno da 0,90 en T = 50 años.
 - Dinámica: el factor de ráfaga de Davenport usa (h + h) en Q y omite R_B·(0,53 + 0,47·R_L) en R; I_z, L_z y V_z son entradas. En torbellinos, c_lat no se obtiene del número de Reynolds ni se aplica la Tabla E.3, y la banda de enganche es un criterio propio. `aeroelastic.galloping_critical_velocity` usa el signo de Den Hartog (no el a_G de la Tabla E.7), `flutter_2dof` no es válido y el factor de interferencia de estela es propio.
 - Exportación e integraciones: los fragmentos .s2k/.e2k no se han importado en SAP2000 ni ETABS; los puentes hacia SAP2000 multiplican por 1000 suponiendo el modelo en N (la API usa las unidades actuales del modelo); el preprocesador de OpenFOAM no genera un caso ejecutable; el plano DXF es esquemático (una flecha por cara).

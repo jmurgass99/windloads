@@ -1,24 +1,25 @@
-Zonas NSR-10 del paquete (zona 2 y 4 sin contrastar):
+Zonas NSR-10 del paquete (zonas 2 y 4 sin contrastar):
   zona 1: 17.0 m/s =    61 km/h
   zona 2: 22.0 m/s =    79 km/h
   zona 3: 28.0 m/s =   101 km/h
   zona 4: 33.0 m/s =   119 km/h
   zona 5: 36.0 m/s =   130 km/h
+  zona 6: 50.0 m/s =   180 km/h  ← no figura en la fuente citada (5 regiones, máx. 36 m/s)
 
   ciudad         nsr10_basic    zona→V  vb_atlas  vb_map  observación
-  Barranquilla          45.0    5→36.0      40.0    40.0  dispersión 9 m/s; > 36 m/s (máx. región 5)
-  Cartagena             45.0    5→36.0      36.0    33.0  dispersión 12 m/s; > 36 m/s (máx. región 5)
+  Barranquilla          45.0    5→36.0      36.0    36.0  dispersión 9 m/s; > 36 m/s (máx. región 5)
+  Cartagena             45.0    5→36.0      36.0    36.0  dispersión 9 m/s; > 36 m/s (máx. región 5)
   Santa Marta           40.0    5→36.0      36.0     —    dispersión 4 m/s; > 36 m/s (máx. región 5)
-  Riohacha              45.0    5→36.0      40.0     —    dispersión 9 m/s; > 36 m/s (máx. región 5)
+  Riohacha              45.0    5→36.0      36.0     —    dispersión 9 m/s; > 36 m/s (máx. región 5)
   Monteria              30.0    4→33.0      33.0     —    dispersión 3 m/s
-  Bogota                27.0    3→28.0      26.0    26.0  dispersión 2 m/s
-  Medellin              27.0    3→28.0      26.0    26.0  dispersión 2 m/s
+  Bogota                27.0    3→28.0      28.0    28.0  dispersión 1 m/s
+  Medellin              27.0    3→28.0      28.0    28.0  dispersión 1 m/s
   Cali                  27.0    3→28.0      33.0    33.0  dispersión 6 m/s
-  Bucaramanga           30.0    4→33.0      28.0     —    dispersión 5 m/s
-  Cucuta                35.0    4→33.0      28.0     —    dispersión 7 m/s
+  Bucaramanga           30.0    4→33.0      33.0     —    dispersión 3 m/s
+  Cucuta                35.0    4→33.0      33.0     —    dispersión 2 m/s
   Villavicencio         27.0    3→28.0      28.0     —    dispersión 1 m/s
-  Leticia               25.0    1→17.0      26.0     —    dispersión 9 m/s
-  Tumaco                30.0    4→33.0      30.0     —    dispersión 3 m/s
+  Leticia               25.0    1→17.0      17.0     —    dispersión 8 m/s
+  Tumaco                30.0    4→33.0      33.0     —    dispersión 3 m/s
 
 13 de 13 ciudades tienen valores distintos según la tabla; 4 (barranquilla, cartagena, santa_marta, riohacha) reciben de nsr10_basic_wind_speed más de 36 m/s, por encima de la región 5. Usa la Figura B.6.4-1 del reglamento y pasa la velocidad como número.
 
