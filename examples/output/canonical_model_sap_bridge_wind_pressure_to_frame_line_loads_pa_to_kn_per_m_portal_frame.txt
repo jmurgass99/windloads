@@ -1,7 +1,0 @@
-q_p(7 m) = 900.1 Pa; c_pe,D = 0.70, c_pe,E = -0.30 → p = 630.0 / -270.0 Pa
-Barlovento: patrón W_X (Wind), w = 3.780 kN/m = 630.0/1000·6.0
-Modelo: 1 patrón(es) ['W_X'], 2 cargas de barra:
-  COL_W  w = +3.780 kN/m  GlobalX  (W_X)
-  COL_L  w = +1.620 kN/m  GlobalX  (W_X)
-Empuje horizontal total = Σ w·H = 37.80 kN; a mano (p_D − p_E)·6·7/1000 = 37.80 kN
-El modelo base no cambia (inmutable): 0 cargas. Falta la cubierta (zonas F-I) y c_s·c_d.

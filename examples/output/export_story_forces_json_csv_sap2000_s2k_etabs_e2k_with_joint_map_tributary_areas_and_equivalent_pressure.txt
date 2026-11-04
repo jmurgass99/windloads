@@ -1,9 +1,0 @@
-V_b = 1949.7 kN; patrón WX+: suma 1949.70 kN
-Planta 1: F = 144.82 kN → presión equivalente 1609.1 Pa = F·1000/(30·3) (1609.1); q_p(z_e) = 1307.11 Pa
-.s2k planta 1: [24.1367, 48.2733, 48.2733, 24.1367] kN, suma 144.8200 = F de planta 144.82; pesos C1 0.167, E1 0.333, E2 0.333, C2 0.167
-Total de cargas en nudos del .s2k: 1949.70 kN (56 líneas)
-Fragmentos:
-  Joint=C1   LoadPat=WX+   CoordSys=GLOBAL   F1=24.1367   F3=0   M1=0   M2=0   M3=0
-  STORYLOAD "Story1"  LOADPAT "WX+"  TYPE  "POINT"  POINT "C1"  DIR "FX"  VALUE 24.1367
-Vuelco: patrón (cota superior) 42149.9 kN·m, cálculo (centro de planta) 39275.5 kN·m; diferencia 2874.4 = Σ F·h/2 = 2874.4 kN·m
-JSON: 14 niveles; ficheros .json, .csv, .s2k y .e2k en examples/out/
