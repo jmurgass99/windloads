@@ -1,9 +1,0 @@
-q_p(12 m) = 0.833 kN/m²; h/d = 0.30: c_pe D = 0.71, E = -0.31, A = -1.20
-  windward   c_pe = +0.71  p = q_p·c_pe = +0.589 kN/m²
-  leeward    c_pe = -0.31  p = q_p·c_pe = -0.261 kN/m²
-  side_left  c_pe = -1.20  p = q_p·c_pe = -1.000 kN/m²
-  side_right c_pe = -1.20  p = q_p·c_pe = -1.000 kN/m²
-DXF plano_viento_nave_40x16.dxf: LINE@W-PRESS ×3, LINE@W-SUCT ×9, LWPOLYLINE@W-LEGEND ×1, LWPOLYLINE@W-OUTLINE ×1, LWPOLYLINE@W-TITLE ×1, TEXT@W-TEXT ×10
-Barlovento (x = 0): flecha de (-10.0, 8.0) a (0.0, 8.0) → apunta hacia el edificio (presión)
-Sotavento (x = 40): flecha de (40.0, 8.0) a (50.0, 8.0) → sale del edificio (succión)
-El plano es esquemático: una flecha por cara con el c_pe dado, sin las zonas A/B/C a lo largo de las laterales ni las de cubierta; solo reconoce las caras windward/leeward/side_left/side_right de la caja envolvente (otra etiqueta se dibuja en el centro de la planta).

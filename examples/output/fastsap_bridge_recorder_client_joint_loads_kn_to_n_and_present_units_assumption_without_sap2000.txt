@@ -1,9 +1,0 @@
-Cargas de nudo [kN]: 5=3.825, 6=7.650, 7=7.650, 8=3.825; suma 22.950 = 0,85·27 = 22.950
-apply_wind_loads_to_sap: aplicadas 3, fallidas {'8': 'SetLoadForce devolvio 1'}; Aplicadas 3/4 cargas, sumF = (19.1, 0.0) kN
-  llamada grabada: ('LoadPatterns.Add', 'W_X_EC1', 8)
-  llamada grabada: ('SetLoadForce', '5', 'W_X_EC1', (3825.0, 0.0, 0.0, 0.0, 0.0, 0.0))
-  llamada grabada: ('SetLoadForce', '6', 'W_X_EC1', (7650.0, 0.0, 0.0, 0.0, 0.0, 0.0))
-Fuerza enviada al nudo 5: 3825.0 (= 3.825 kN × 1000): correcto solo con el modelo en N.
-
-Exportador en seco: {'patterns': ['WX+', 'WY+'], 'n_patterns': 2, 'n_loads': 3, 'dry_run': True}
-Exportador con cliente: aplicadas 3, fallidas {}; patrones creados ['WX+', 'WY+'] con tipo 8 (OTHER)

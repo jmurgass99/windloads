@@ -1,7 +1,0 @@
-EC1: q_p(24 m) = 1.2405 kPa (motor 1.2405), v_m = 30.50 m/s, c_pe D/E = 0.8/-0.550 (h/d = 2), neta 1.6747 kPa
-ASCE 7: q_h = 31.79 psf (TerrainProfile en SI → 31.78 psf), L/B = 1,5 → Cp_l = -0.40, neta = 32.43 psf = q_h·0,85·1.20 (32.43)
-        barlovento máx. 27.34 psf (con −GCpi), succión de sotavento máx. -16.53 psf (con +GCpi)
-NSR-10 Cali: V = 97.2 km/h, q_h = 0.5510 kPa (NSR10WindLoad 0.5510, incluye I = 1,15), neta 0.6089 kPa = q_h·0,85·1,3
-C&C zona 4, A =  0.5 m²: GCp− = -1.100 (asce7_GCp -1.100), p− = -1.320 kPa; Presiones exteriores q_h·GCp; falta restar/sumar q_h·GCpi.
-C&C zona 5, A =  5.0 m²: GCp− = -1.142 (asce7_GCp -1.142), p− = -1.370 kPa; Presiones exteriores q_h·GCp; falta restar/sumar q_h·GCpi.
-C&C zona 3, A = 20.0 m²: GCp− = -2.494 (asce7_GCp -2.494), p− = -2.993 kPa; roof_type='gable': se usa la tabla θ <= 7° (sin contrastar).
