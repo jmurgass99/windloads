@@ -1,11 +1,11 @@
 # windloads
 
-**Español** · [English](README.en.md)
+**Español** · [English](README.en.md) · [Português](README.pt.md)
 
 Cargas de viento sobre edificios en Python, con EN 1991-1-4, ASCE 7 y NSR-10 B.6.
 
 [![CI](https://github.com/jmurgass99/windloads/actions/workflows/ci.yml/badge.svg)](https://github.com/jmurgass99/windloads/actions/workflows/ci.yml)
-[![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-green)](LICENSE)
+[![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-green)](https://img.shields.io/badge/licencia-MIT-green)
 
 ## Qué hace
 

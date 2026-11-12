@@ -1,11 +1,11 @@
 # windloads
 
-[Español](README.md) · **English**
+[Español](README.md) · **English** · [Português](README.pt.md)
 
 Wind loads on buildings in Python, using EN 1991-1-4, ASCE 7 and NSR-10 B.6.
 
 [![CI](https://github.com/jmurgass99/windloads/actions/workflows/ci.yml/badge.svg)](https://github.com/jmurgass99/windloads/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://img.shields.io/badge/license-MIT-green)
 
 ## What it does
 
